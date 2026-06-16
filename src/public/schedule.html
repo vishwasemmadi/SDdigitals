@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SD Digitals - Follow-up Schedule & Reminders</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Shared Sidebar Navigation -->
+  <div class="sidebar">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M23 18V6a2 2 0 0 0-2-2H3a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2zM8.5 16A1.5 1.5 0 1 1 10 14.5a1.5 1.5 0 0 1-1.5 1.5zm7-5A1.5 1.5 0 1 1 17 9.5a1.5 1.5 0 0 1-1.5 1.5z"/>
+        </svg>
+      </div>
+      <span class="brand-name">SD DIGITALS</span>
+    </div>
+    <ul class="nav-menu">
+      <li class="nav-item" id="nav-dashboard"><a href="index.html">
+        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+        Dashboard
+      </a></li>
+      <li class="nav-item" id="nav-workflow"><a href="workflow.html">
+        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+        Workflow Board
+      </a></li>
+      <li class="nav-item" id="nav-customers"><a href="customers.html">
+        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+        Customer Directory
+      </a></li>
+      <li class="nav-item" id="nav-rentals"><a href="rentals.html">
+        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+        Equipment Rentals
+      </a></li>
+      <li class="nav-item" id="nav-inventory"><a href="inventory.html">
+        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
+        Inventory Status
+      </a></li>
+      <li class="nav-item" id="nav-schedule"><a href="schedule.html">
+        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+        Follow-up Schedule
+      </a></li>
+      <li class="nav-item" id="nav-simulator"><a href="simulator.html">
+        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+        API Alert Simulator
+      </a></li>
+    </ul>
+    <div class="sidebar-footer">
+      <div class="user-avatar">SD</div>
+      <div class="user-info">
+        <span class="user-name">SD Admin</span>
+        <span class="user-role">Operations Lead</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Workspace -->
+  <main class="main-content">
+    <header class="page-header">
+      <div class="page-title">
+        <h1>Operations agenda & Schedule</h1>
+        <p>Keep track of outstanding equipment pickups and customer relationship check-ins</p>
+      </div>
+    </header>
+
+    <!-- SECTION 1: Overdue Equipment Alerts -->
+    <section class="dashboard-panel">
+      <div class="panel-title" style="color: var(--accent-danger); border-color: rgba(239,68,68,0.2);">
+        <span>Urgent: Overdue Rental Reminders Needed</span>
+      </div>
+      <div class="table-container">
+        <table class="app-table">
+          <thead>
+            <tr>
+              <th>Client Creator</th>
+              <th>Due Date</th>
+              <th>Estimated Value</th>
+              <th>Alert Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="overdue-tbody">
+            <tr>
+              <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 30px;">
+                Checking overdue bookings registry...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SECTION 2: Scheduled Relationships Logs -->
+    <section class="dashboard-panel" style="margin-top: 10px;">
+      <div class="panel-title" style="color: var(--accent-primary); border-color: rgba(99,102,241,0.2);">
+        <span>Scheduled Customer Relationship Follow-ups</span>
+      </div>
+      <div class="table-container">
+        <table class="app-table">
+          <thead>
+            <tr>
+              <th>Client Creator</th>
+              <th>Planned Date</th>
+              <th>Follow-up Channel</th>
+              <th>Discussion Theme / Script Template</th>
+              <th>Operator Notes</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="scheduled-tbody">
+            <tr>
+              <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 30px;">
+                Retrieving scheduled check-in logs...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script src="js/main.js"></script>
+  <script src="js/schedule.js"></script>
+</body>
+</html>

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SD Digitals - WhatsApp & Email API Simulator</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Shared Sidebar Navigation -->
+  <div class="sidebar">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M23 18V6a2 2 0 0 0-2-2H3a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2zM8.5 16A1.5 1.5 0 1 1 10 14.5a1.5 1.5 0 0 1-1.5 1.5zm7-5A1.5 1.5 0 1 1 17 9.5a1.5 1.5 0 0 1-1.5 1.5z"/>
+        </svg>
+      </div>
+      <span class="brand-name">SD DIGITALS</span>
+    </div>
+    <ul class="nav-menu">
+      <li class="nav-item" id="nav-dashboard"><a href="index.html">
+        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+        Dashboard
+      </a></li>
+      <li class="nav-item" id="nav-workflow"><a href="workflow.html">
+        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+        Workflow Board
+      </a></li>
+      <li class="nav-item" id="nav-customers"><a href="customers.html">
+        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+        Customer Directory
+      </a></li>
+      <li class="nav-item" id="nav-rentals"><a href="rentals.html">
+        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+        Equipment Rentals
+      </a></li>
+      <li class="nav-item" id="nav-inventory"><a href="inventory.html">
+        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
+        Inventory Status
+      </a></li>
+      <li class="nav-item" id="nav-schedule"><a href="schedule.html">
+        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+        Follow-up Schedule
+      </a></li>
+      <li class="nav-item" id="nav-simulator"><a href="simulator.html">
+        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+        API Alert Simulator
+      </a></li>
+    </ul>
+    <div class="sidebar-footer">
+      <div class="user-avatar">SD</div>
+      <div class="user-info">
+        <span class="user-name">SD Admin</span>
+        <span class="user-role">Operations Lead</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Workspace -->
+  <main class="main-content">
+    <header class="page-header">
+      <div class="page-title">
+        <h1>Messaging Alert Gateway Console</h1>
+        <p>Simulation terminal displaying WhatsApp Business API logs and SMTP Email templates dispatched by CRM</p>
+      </div>
+      <div class="page-actions">
+        <button class="btn btn-secondary" onclick="clearLogs()">Clear Console</button>
+      </div>
+    </header>
+
+    <div class="details-layout" style="grid-template-columns: 2fr 1.2fr; gap: 24px;">
+      
+      <!-- Terminal Output -->
+      <section class="dashboard-panel">
+        <div class="panel-title" style="color: var(--accent-success); border-color: rgba(16,185,129,0.2);">
+          <span>Live Webhook Logs</span>
+        </div>
+        <div class="terminal-window" id="terminal-console">
+          <div class="terminal-line terminal-info">
+            <span class="terminal-timestamp">[CRM SYSTEM STARTUP]</span> Alert simulator loaded. Awaiting outbound alerts...
+          </div>
+        </div>
+      </section>
+
+      <!-- Configuration details -->
+      <section class="dashboard-panel">
+        <div class="panel-title">Gateway Settings</div>
+        <div class="info-list" style="gap: 16px;">
+          <div class="info-item">
+            <span class="info-label">WhatsApp Gateway Status</span>
+            <span class="info-val" style="color: var(--accent-success); font-weight: 600;">ACTIVE (Simulated Sandbox)</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Email SMTP Port</span>
+            <span class="info-val" style="font-family: monospace;">port 587 (TLS Enabled)</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">WhatsApp Sandbox webhook</span>
+            <span class="info-val" style="font-family: monospace; font-size: 0.8rem; word-break: break-all;">https://api.sddigitals.com/v1/whatsapp/webhook</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Export Formats</span>
+            <span class="info-val">CSV Reports & PDF invoice sheets supported</span>
+          </div>
+          <hr style="border: 0; border-top: 1px solid var(--border-color);">
+          <div class="info-item">
+            <span class="info-label">Instructions</span>
+            <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5;">
+              To see active dispatches, go to the <strong>Dashboard</strong> or <strong>Follow-up Schedule</strong> and click "Send Alert". The outbound payload details will instantly write in green output inside this log.
+            </p>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <script src="js/main.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      highlightNav('nav-simulator');
+      renderLogs();
+
+      // Listen for outbound events
+      window.addEventListener('simulation_logged', renderLogs);
+    });
+
+    function renderLogs() {
+      const consoleEl = document.getElementById('terminal-console');
+      const logs = JSON.parse(sessionStorage.getItem('sim_logs') || '[]');
+
+      if (logs.length === 0) {
+        consoleEl.innerHTML = `
+          <div class="terminal-line terminal-info">
+            <span class="terminal-timestamp">[CRM SYSTEM STARTUP]</span> Alert simulator loaded. Awaiting outbound alerts...
+          </div>
+        `;
+        return;
+      }
+
+      consoleEl.innerHTML = '';
+      logs.forEach(log => {
+        const time = new Date(log.timestamp).toLocaleTimeString();
+        
+        // Add log lines
+        const line1 = document.createElement('div');
+        line1.className = 'terminal-line';
+        line1.innerHTML = `<span class="terminal-timestamp">[${time}]</span> <span class="terminal-info">DISPATCHING outbound ${log.type} message to Customer Reference ID ${log.customerId}...</span>`;
+        
+        const line2 = document.createElement('div');
+        line2.className = 'terminal-line';
+        line2.innerHTML = `<span class="terminal-timestamp">[${time}]</span> Payload: <span style="color: #e5e7eb;">"${log.message}"</span>`;
+
+        const line3 = document.createElement('div');
+        line3.className = 'terminal-line terminal-success';
+        line3.innerHTML = `<span class="terminal-timestamp">[${time}]</span> GATEWAY RESPONSE: ${log.api_response}`;
+
+        const hr = document.createElement('hr');
+        hr.style.borderColor = '#1f242e';
+        hr.style.margin = '8px 0';
+
+        consoleEl.appendChild(line1);
+        consoleEl.appendChild(line2);
+        consoleEl.appendChild(line3);
+        consoleEl.appendChild(hr);
+      });
+    }
+
+    function clearLogs() {
+      sessionStorage.setItem('sim_logs', '[]');
+      renderLogs();
+      showNotification('Console history cleared.', 'info');
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+{
+  "name": "sd-digitals-rental-crm",
+  "version": "1.0.0",
+  "description": "Camera & Equipment Rental Customer Relationship Tracker prototype for SD Digitals",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "seed": "node src/seed.js",
+    "test": "node src/test.js",
+    "dev": "npm run start"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "sqlite3": "^5.1.7"
+  },
+  "keywords": [
+    "crm",
+    "rental",
+    "tracking",
+    "media",
+    "vfx"
+  ],
+  "author": "SD Digitals",
+  "license": "ISC"
+}
