@@ -1,6 +1,8 @@
+require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const nodemailer = require('nodemailer');
 const { dbQuery, dbInitialized } = require('./db');
 
 const app = express();
@@ -14,6 +16,27 @@ app.use(express.static(path.join(__dirname, 'public')));
 const asyncHandler = (fn) => (req, res, next) => {
   Promise.resolve(fn(req, res, next)).catch(next);
 };
+
+// Configure Gmail transporter (only if credentials are set in .env)
+const gmailUser = process.env.GMAIL_USER;
+const gmailPass = process.env.GMAIL_APP_PASSWORD;
+const emailConfigured = gmailUser && gmailPass 
+  && gmailUser !== 'your_gmail@gmail.com' 
+  && gmailPass !== 'your_16_char_app_password';
+
+let transporter = null;
+if (emailConfigured) {
+  transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: gmailUser,
+      pass: gmailPass
+    }
+  });
+  console.log(`Email service configured: sending as ${gmailUser}`);
+} else {
+  console.log('Email service: running in simulation mode (no Gmail credentials in .env)');
+}
 
 // Send automated booking confirmation email
 async function sendBookingConfirmationEmail(rentalId) {
@@ -34,38 +57,186 @@ async function sendBookingConfirmationEmail(rentalId) {
       WHERE ri.rental_id = ?
     `, [rentalId]);
 
-    const itemsList = items.map(i => `${i.quantity}x ${i.equipment_name}`).join('\n');
+    const ref = String(rental.id).padStart(4, '0');
+    const itemsList = items.map(i => `• ${i.quantity}x ${i.equipment_name}`).join('<br>');
+    const itemsListText = items.map(i => `  - ${i.quantity}x ${i.equipment_name}`).join('\n');
 
-    const subject = `Booking Confirmation: Rental #${String(rental.id).padStart(4, '0')}`;
-    const emailMessage = `Subject: ${subject}
-To: ${rental.customer_email}
+    const subject = `Booking Confirmation: Rental #${ref}`;
+    const htmlBody = `
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f9fafb; border-radius: 12px; overflow: hidden;">
+  <div style="background: linear-gradient(135deg, #6366f1, #4f46e5); padding: 32px; text-align: center;">
+    <h1 style="color: white; margin: 0; font-size: 22px;">SD Digitals</h1>
+    <p style="color: rgba(255,255,255,0.8); margin: 6px 0 0;">Equipment Rental Confirmation</p>
+  </div>
+  <div style="padding: 32px; background: white;">
+    <h2 style="color: #1f2937; margin-top: 0;">Booking Confirmed ✅</h2>
+    <p style="color: #374151;">Dear <strong>${rental.customer_name}</strong>,</p>
+    <p style="color: #374151;">Your equipment rental booking at SD Digitals is officially confirmed!</p>
+    <div style="background: #f3f4f6; border-radius: 8px; padding: 20px; margin: 20px 0;">
+      <h3 style="color: #374151; margin-top: 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Booking Summary</h3>
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr><td style="color: #6b7280; padding: 4px 0;">Booking Ref</td><td style="color: #1f2937; font-weight: 600;">#${ref}</td></tr>
+        <tr><td style="color: #6b7280; padding: 4px 0;">Pickup Date</td><td style="color: #1f2937; font-weight: 600;">${rental.rental_date}</td></tr>
+        <tr><td style="color: #6b7280; padding: 4px 0;">Return By</td><td style="color: #1f2937; font-weight: 600;">${rental.expected_return_date}</td></tr>
+        <tr><td style="color: #6b7280; padding: 4px 0;">Estimated Total</td><td style="color: #1f2937; font-weight: 600;">INR ${rental.cost_estimate}</td></tr>
+      </table>
+    </div>
+    <div style="background: #f3f4f6; border-radius: 8px; padding: 20px; margin: 20px 0;">
+      <h3 style="color: #374151; margin-top: 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Gear Package</h3>
+      <p style="color: #374151; margin: 0;">${itemsList}</p>
+    </div>
+    <p style="color: #374151;">Thank you for choosing SD Digitals. Please contact our operations desk for delivery coordination or additional accessories.</p>
+  </div>
+  <div style="background: #f3f4f6; padding: 20px; text-align: center;">
+    <p style="color: #6b7280; font-size: 12px; margin: 0;">SD Digitals Operations Team | Camera &amp; Equipment Rentals</p>
+  </div>
+</div>`;
 
-Dear ${rental.customer_name},
+    const plainText = `Dear ${rental.customer_name},\n\nYour equipment rental booking at SD Digitals is officially confirmed!\n\nBooking Summary:\n- Booking Ref: #${ref}\n- Pickup: ${rental.rental_date}\n- Return By: ${rental.expected_return_date}\n- Total: INR ${rental.cost_estimate}\n\nGear Package:\n${itemsListText}\n\nBest regards,\nSD Digitals Operations Team`;
 
-Your equipment rental booking at SD Digitals is officially confirmed!
-
-Booking Summary:
-- Booking Reference: #${String(rental.id).padStart(4, '0')}
-- Pickup Date: ${rental.rental_date}
-- Expected Return: ${rental.expected_return_date}
-- Estimated Total: INR ${rental.cost_estimate}
-
-Gear Package:
-${itemsList}
-
-Thank you for choosing SD Digitals. If you need any delivery coordination or additional accessories, please contact our operations desk.
-
-Best regards,
-SD Digitals Operations Team`;
+    const logMessage = `Subject: ${subject}\nTo: ${rental.customer_email}\n\n${plainText}`;
 
     await dbQuery.run(`
       INSERT INTO communication_logs (customer_id, type, direction, message, status, notes)
       VALUES (?, 'Email', 'Outbound', ?, 'Completed', ?)
-    `, [rental.customer_id, emailMessage, `Automated booking confirmation for Rental #${rentalId}`]);
+    `, [rental.customer_id, logMessage, `Automated booking confirmation for Rental #${rentalId}`]);
 
-    console.log(`Automated booking confirmation email logged for Rental #${rentalId} to ${rental.customer_email}`);
+    if (transporter) {
+      await transporter.sendMail({
+        from: `"${process.env.SENDER_NAME || 'SD Digitals Operations'}" <${gmailUser}>`,
+        to: rental.customer_email,
+        subject: subject,
+        text: plainText,
+        html: htmlBody
+      });
+      console.log(`✉️  Booking confirmation email SENT to ${rental.customer_email} (Rental #${rentalId})`);
+    } else {
+      console.log(`Automated booking confirmation email logged for Rental #${rentalId} to ${rental.customer_email} [simulation mode]`);
+    }
   } catch (err) {
-    console.error('Error logging booking confirmation email:', err);
+    console.error('Error sending booking confirmation email:', err);
+  }
+}
+
+// Send automated status update email based on state transition
+async function sendStatusUpdateEmail(rentalId, status) {
+  try {
+    const rental = await dbQuery.get(`
+      SELECT r.*, c.name AS customer_name, c.email AS customer_email
+      FROM equipment_rentals r
+      JOIN customers c ON r.customer_id = c.id
+      WHERE r.id = ?
+    `, [rentalId]);
+
+    if (!rental) return null;
+
+    const items = await dbQuery.all(`
+      SELECT ri.quantity, e.name AS equipment_name
+      FROM rental_items ri
+      JOIN equipment e ON ri.equipment_id = e.id
+      WHERE ri.rental_id = ?
+    `, [rentalId]);
+
+    const itemsList = items.map(i => `${i.quantity}x ${i.equipment_name}`).join('\n');
+    const ref = String(rental.id).padStart(4, '0');
+
+    let subject = `Rental Status Update: Rental #${ref}`;
+    let bodyIntro = `We are writing to inform you that your equipment rental status has been updated to: ${status}.`;
+
+    if (status === 'Inquiry') {
+      subject = `Rental Inquiry Received: Rental #${ref}`;
+      bodyIntro = `Thank you for your inquiry regarding equipment rentals at SD Digitals. We have received your request and are checking gear availability.`;
+    } else if (status === 'Quote Sent') {
+      subject = `Equipment Rental Quote: Rental #${ref}`;
+      bodyIntro = `Here is the quote for your requested equipment rental at SD Digitals. Please confirm your booking to reserve the gear.`;
+    } else if (status === 'Booked') {
+      subject = `Booking Confirmation: Rental #${ref}`;
+      bodyIntro = `Your equipment rental booking at SD Digitals is officially confirmed!`;
+    } else if (status === 'Out for Rental') {
+      subject = `Gear Dispatched / Out for Rental: Rental #${ref}`;
+      bodyIntro = `Your equipment rental package has been checked out and is now out for rental.`;
+    } else if (status === 'Returned') {
+      subject = `Gear Safely Returned: Rental #${ref}`;
+      bodyIntro = `Thank you for returning the equipment. All items have been inspected and checked back into our inventory.`;
+    } else if (status === 'Overdue') {
+      subject = `URGENT - Overdue Equipment Rental: Rental #${ref}`;
+      bodyIntro = `This is an urgent reminder that your equipment rental package is overdue. Please return the gear immediately to prevent additional late fee charges.`;
+    } else if (status === 'Cancelled') {
+      subject = `Rental Booking Cancelled: Rental #${ref}`;
+      bodyIntro = `We confirm that your equipment rental booking has been cancelled.`;
+    }
+
+    const statusColor = {
+      'Booked': '#6366f1', 'Out for Rental': '#a78bfa', 'Overdue': '#ef4444',
+      'Returned': '#10b981', 'Cancelled': '#6b7280', 'Quote Sent': '#f59e0b', 'Inquiry': '#3b82f6'
+    }[status] || '#6366f1';
+
+    const itemsListHtml = items.map(i => `• ${i.quantity}x ${i.equipment_name}`).join('<br>');
+    const itemsListText = items.map(i => `  - ${i.quantity}x ${i.equipment_name}`).join('\n');
+
+    const htmlBody = `
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f9fafb; border-radius: 12px; overflow: hidden;">
+  <div style="background: linear-gradient(135deg, ${statusColor}, #4f46e5); padding: 32px; text-align: center;">
+    <h1 style="color: white; margin: 0; font-size: 22px;">SD Digitals</h1>
+    <p style="color: rgba(255,255,255,0.8); margin: 6px 0 0;">Rental Status Update</p>
+  </div>
+  <div style="padding: 32px; background: white;">
+    <div style="display: inline-block; background: ${statusColor}22; color: ${statusColor}; border: 1px solid ${statusColor}44; border-radius: 6px; padding: 4px 14px; font-size: 13px; font-weight: 700; margin-bottom: 20px;">${status}</div>
+    <p style="color: #374151;">Dear <strong>${rental.customer_name}</strong>,</p>
+    <p style="color: #374151;">${bodyIntro}</p>
+    <div style="background: #f3f4f6; border-radius: 8px; padding: 20px; margin: 20px 0;">
+      <h3 style="color: #374151; margin-top: 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Booking Summary</h3>
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr><td style="color: #6b7280; padding: 4px 0;">Booking Ref</td><td style="color: #1f2937; font-weight: 600;">#${ref}</td></tr>
+        <tr><td style="color: #6b7280; padding: 4px 0;">Pickup Date</td><td style="color: #1f2937; font-weight: 600;">${rental.rental_date}</td></tr>
+        <tr><td style="color: #6b7280; padding: 4px 0;">Return By</td><td style="color: #1f2937; font-weight: 600;">${rental.expected_return_date}</td></tr>
+        <tr><td style="color: #6b7280; padding: 4px 0;">Estimated Total</td><td style="color: #1f2937; font-weight: 600;">INR ${rental.cost_estimate}</td></tr>
+      </table>
+    </div>
+    <div style="background: #f3f4f6; border-radius: 8px; padding: 20px; margin: 20px 0;">
+      <h3 style="color: #374151; margin-top: 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Gear Package</h3>
+      <p style="color: #374151; margin: 0;">${itemsListHtml}</p>
+    </div>
+    <p style="color: #374151;">For queries, contact SD Digitals operations team.</p>
+  </div>
+  <div style="background: #f3f4f6; padding: 20px; text-align: center;">
+    <p style="color: #6b7280; font-size: 12px; margin: 0;">SD Digitals Operations Team | Camera &amp; Equipment Rentals</p>
+  </div>
+</div>`;
+
+    const plainText = `Dear ${rental.customer_name},\n\n${bodyIntro}\n\nBooking Summary:\n- Booking Ref: #${ref}\n- Pickup: ${rental.rental_date}\n- Return By: ${rental.expected_return_date}\n- Total: INR ${rental.cost_estimate}\n\nGear Package:\n${itemsListText}\n\nBest regards,\nSD Digitals Operations Team`;
+    const logMessage = `Subject: ${subject}\nTo: ${rental.customer_email}\n\n${plainText}`;
+
+    await dbQuery.run(`
+      INSERT INTO communication_logs (customer_id, type, direction, message, status, notes)
+      VALUES (?, 'Email', 'Outbound', ?, 'Completed', ?)
+    `, [rental.customer_id, logMessage, `Automated ${status} notification for Rental #${rentalId}`]);
+
+    if (transporter) {
+      await transporter.sendMail({
+        from: `"${process.env.SENDER_NAME || 'SD Digitals Operations'}" <${gmailUser}>`,
+        to: rental.customer_email,
+        subject: subject,
+        text: plainText,
+        html: htmlBody
+      });
+      console.log(`✉️  Status update email SENT to ${rental.customer_email} (${status} — Rental #${rentalId})`);
+    } else {
+      console.log(`Automated ${status} email logged for Rental #${rentalId} to ${rental.customer_email} [simulation mode]`);
+    }
+
+    return {
+      customer_id: rental.customer_id,
+      email: rental.customer_email,
+      subject: subject,
+      message: logMessage,
+      api_response: transporter
+        ? `200 OK - Email dispatched via Gmail to ${rental.customer_email}`
+        : `SIMULATED - Logged to communication_logs (configure .env to send real emails)`
+    };
+  } catch (err) {
+    console.error('Error sending status update email:', err);
+    return null;
   }
 }
 
@@ -422,6 +593,7 @@ app.post('/api/rentals', asyncHandler(async (req, res) => {
 app.put('/api/rentals/:id/status', asyncHandler(async (req, res) => {
   const rentalId = req.params.id;
   const { status, delivery_status } = req.body;
+  const send_email = req.body.send_email !== false;
 
   if (!status) {
     return res.status(400).json({ error: 'Status is required' });
@@ -476,11 +648,14 @@ app.put('/api/rentals/:id/status', asyncHandler(async (req, res) => {
     WHERE id = ?
   `, [status, actualReturnDate, finalDeliveryStatus, rentalId]);
 
-  if (status === 'Booked' && oldStatus !== 'Booked') {
+  let emailSent = null;
+  if (send_email) {
+    emailSent = await sendStatusUpdateEmail(rentalId, status);
+  } else if (status === 'Booked' && oldStatus !== 'Booked') {
     await sendBookingConfirmationEmail(rentalId);
   }
 
-  res.json({ message: 'Rental status updated successfully', status, actualReturnDate });
+  res.json({ message: 'Rental status updated successfully', status, actualReturnDate, emailSent });
 }));
 
 app.delete('/api/rentals/:id', asyncHandler(async (req, res) => {

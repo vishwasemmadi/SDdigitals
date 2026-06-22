@@ -67,7 +67,11 @@
           <h1>Equipment Rentals Registry</h1>
           <p>Complete booking logs, delivery tracking, and invoice statuses</p>
         </div>
-        <div class="page-actions">
+        <div class="page-actions" style="display: flex; gap: 12px; align-items: center;">
+          <button class="btn btn-secondary" id="btn-toggle-email" onclick="toggleEmailAutomation()">
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" style="margin-right: 4px;"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+            Email Alerts: Disabled
+          </button>
           <button class="btn btn-primary" onclick="switchToNewRentalForm()">
             <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none" style="margin-right: 4px;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
             New Rental Booking

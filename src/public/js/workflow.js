@@ -45,11 +45,11 @@ async function loadWorkflowBoard() {
       card.addEventListener('dragstart', dragStart);
 
       const itemsText = rental.items.map(i => `${i.quantity}x ${i.equipment_name}`).join(', ');
-      const overdueAlert = rental.status === 'Overdue' 
+      const overdueAlert = rental.status === 'Overdue'
         ? `<div style="color: var(--accent-danger); font-size: 0.72rem; font-weight: 700; margin-top: 4px; display: flex; align-items: center; gap: 4px;">
              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
              OVERDUE RETURN
-           </div>` 
+           </div>`
         : '';
 
       card.innerHTML = `
@@ -123,16 +123,36 @@ async function dropCard(event, newStatus) {
   if (!card) return;
 
   const rentalId = cardId.replace('rental-card-', '');
-  
+  const emailAutomationEnabled = localStorage.getItem('emailAutomationEnabled') !== 'false';
+
   try {
     const res = await fetch(`${API_BASE}/api/rentals/${rentalId}/status`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: newStatus })
+      body: JSON.stringify({
+        status: newStatus,
+        send_email: emailAutomationEnabled
+      })
     });
 
     if (res.ok) {
+      const data = await res.json();
       showNotification(`Rental shifted to ${newStatus} state.`, 'success');
+
+      if (data.emailSent) {
+        let logs = JSON.parse(sessionStorage.getItem('sim_logs') || '[]');
+        logs.unshift({
+          timestamp: new Date().toISOString(),
+          type: 'Email',
+          customerId: data.emailSent.customer_id,
+          message: data.emailSent.message,
+          status: 'Success',
+          api_response: data.emailSent.api_response
+        });
+        sessionStorage.setItem('sim_logs', JSON.stringify(logs));
+        window.dispatchEvent(new CustomEvent('simulation_logged'));
+      }
+
       loadWorkflowBoard(); // Reload to refresh counters, gear availability, dates
     } else {
       const err = await res.json();

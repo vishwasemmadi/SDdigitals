@@ -86,13 +86,25 @@ function renderInventory() {
             </button>
           </div>
           <span class="equip-serial">Serial: ${equip.serial_number}</span>
-          <span class="equip-rate" style="margin-top: auto;">${formatCurrency(equip.rental_rate)}/day</span>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: auto; padding-top: 8px; gap: 8px; border-top: 1px solid rgba(255, 255, 255, 0.05);">
+            <span class="equip-rate" style="margin: 0;">${formatCurrency(equip.rental_rate)}/day</span>
+            <button class="btn btn-primary book-btn" style="padding: 6px 12px; font-size: 0.8rem; cursor: pointer; border-radius: 6px; display: flex; align-items: center; gap: 4px;" ${equip.status !== 'Available' ? 'disabled' : ''}>
+              <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+              Book
+            </button>
+          </div>
         </div>
       `;
 
       card.querySelector('.delete-btn').addEventListener('click', (event) => {
         deleteEquipment(event, equip.id, equip.name);
       });
+
+      if (equip.status === 'Available') {
+        card.querySelector('.book-btn').addEventListener('click', () => {
+          openBookModal(equip.id, equip.name);
+        });
+      }
 
       container.appendChild(card);
     });
@@ -169,3 +181,123 @@ async function deleteEquipment(event, id, name) {
     showNotification('Network error.', 'error');
   }
 }
+
+// -------------------------------------------------------------
+// Booking Modal Actions & Submission
+// -------------------------------------------------------------
+async function openBookModal(equipId, equipName) {
+  document.getElementById('book-form').reset();
+  
+  document.getElementById('book-equip-id').value = equipId;
+  document.getElementById('book-equip-name').value = equipName;
+
+  const today = new Date().toISOString().split('T')[0];
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+  document.getElementById('book-date').value = today;
+  document.getElementById('book-return-date').value = tomorrowStr;
+
+  await Promise.all([
+    loadBookCustomersDropdown(),
+    loadBookProjectsDropdown()
+  ]);
+
+  document.getElementById('book-modal').classList.add('open');
+}
+
+function closeBookModal() {
+  document.getElementById('book-modal').classList.remove('open');
+}
+
+async function loadBookCustomersDropdown() {
+  try {
+    const res = await fetch(`${API_BASE}/api/customers`);
+    if (!res.ok) throw new Error('Failed to load customers');
+    const customers = await res.json();
+
+    const select = document.getElementById('book-customer');
+    select.innerHTML = '<option value="">Select customer...</option>';
+
+    customers.forEach(cust => {
+      const option = document.createElement('option');
+      option.value = cust.id;
+      option.textContent = `${cust.name} (${cust.type})`;
+      select.appendChild(option);
+    });
+  } catch (err) {
+    console.error('Error loading customers dropdown:', err);
+  }
+}
+
+async function loadBookProjectsDropdown() {
+  try {
+    const res = await fetch(`${API_BASE}/api/projects`);
+    if (!res.ok) throw new Error('Failed to load projects');
+    const projects = await res.json();
+
+    const select = document.getElementById('book-project');
+    select.innerHTML = '<option value="">None / Direct Rental</option>';
+
+    projects.forEach(proj => {
+      const option = document.createElement('option');
+      option.value = proj.id;
+      option.textContent = `${proj.title} (Client: ${proj.customer_name})`;
+      select.appendChild(option);
+    });
+  } catch (err) {
+    console.error('Error loading projects dropdown:', err);
+  }
+}
+
+async function saveBooking(event) {
+  event.preventDefault();
+
+  const equipId = parseInt(document.getElementById('book-equip-id').value);
+  const customerId = document.getElementById('book-customer').value;
+  const projectId = document.getElementById('book-project').value;
+  const rentalDate = document.getElementById('book-date').value;
+  const expectedReturnDate = document.getElementById('book-return-date').value;
+  const status = document.getElementById('book-status').value;
+  const discount = parseFloat(document.getElementById('book-discount').value) || 0.00;
+
+  if (!customerId || !rentalDate || !expectedReturnDate) {
+    showNotification('Please fill in customer and dates.', 'error');
+    return;
+  }
+
+  const items = [{
+    equipment_id: equipId,
+    quantity: 1
+  }];
+
+  try {
+    const res = await fetch(`${API_BASE}/api/rentals`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        customer_id: parseInt(customerId),
+        project_id: projectId ? parseInt(projectId) : null,
+        rental_date: rentalDate,
+        expected_return_date: expectedReturnDate,
+        status: status,
+        discount: discount,
+        items: items
+      })
+    });
+
+    if (res.ok) {
+      showNotification('Equipment booked successfully!', 'success');
+      closeBookModal();
+      loadInventory(); // Refresh equipment status on grid
+    } else {
+      const err = await res.json();
+      showNotification(err.error || 'Failed to create booking.', 'error');
+    }
+  } catch (err) {
+    console.error('Error creating booking:', err);
+    showNotification('Network error.', 'error');
+  }
+}
+

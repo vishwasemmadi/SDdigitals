@@ -215,6 +215,73 @@
     </div>
   </div>
 
+  <!-- BOOK EQUIPMENT MODAL -->
+  <div class="modal-overlay" id="book-modal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3>Book Equipment</h3>
+        <button class="close-modal" onclick="closeBookModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="book-form" onsubmit="saveBooking(event)">
+          <input type="hidden" id="book-equip-id">
+          
+          <div class="form-group">
+            <label for="book-equip-name">Equipment to Book</label>
+            <input type="text" id="book-equip-name" class="form-control" readonly disabled style="opacity: 0.8; background-color: var(--border-color);">
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="book-customer">Select Customer</label>
+              <select id="book-customer" class="form-control" required>
+                <!-- Dynamically loaded -->
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="book-project">Project (Optional)</label>
+              <select id="book-project" class="form-control">
+                <!-- Dynamically loaded -->
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="book-date">Rental Start Date</label>
+              <input type="date" id="book-date" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label for="book-return-date">Expected Return Date</label>
+              <input type="date" id="book-return-date" class="form-control" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="book-status">Initial Status</label>
+              <select id="book-status" class="form-control">
+                <option value="Booked" selected>Booked</option>
+                <option value="Inquiry">Inquiry</option>
+                <option value="Out for Rental">Out for Rental</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="book-discount">Discount (INR)</label>
+              <input type="number" id="book-discount" class="form-control" value="0" min="0">
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px;">
+            <button type="button" class="btn btn-secondary" onclick="closeBookModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary">Confirm Booking</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+
   <script src="js/main.js"></script>
   <script src="js/inventory.js"></script>
 </body>

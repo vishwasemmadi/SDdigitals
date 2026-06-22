@@ -7,11 +7,14 @@
     "start": "node src/server.js",
     "seed": "node src/seed.js",
     "test": "node src/test.js",
+    "clear": "node src/clear.js",
     "dev": "npm run start"
   },
   "dependencies": {
     "cors": "^2.8.5",
+    "dotenv": "^17.4.2",
     "express": "^4.19.2",
+    "nodemailer": "^9.0.0",
     "sqlite3": "^5.1.7"
   },
   "keywords": [
