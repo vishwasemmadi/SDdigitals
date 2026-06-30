@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>
+    if (!localStorage.getItem('crt_token') && !sessionStorage.getItem('crt_token')) {
+      document.documentElement.style.display = 'none';
+      window.location.replace('login.html?next=' + encodeURIComponent(window.location.pathname + window.location.search));
+    }
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SD Digitals — Booking Requests</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .requests-header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:24px; }
+    .filter-tabs { display:flex; gap:8px; flex-wrap:wrap; }
+    .filter-tab { background:var(--bg-card); border:1px solid var(--border-color); color:var(--text-secondary); border-radius:8px; padding:6px 16px; font-size:0.82rem; font-weight:500; cursor:pointer; transition:all 0.2s; }
+    .filter-tab:hover { border-color:var(--accent-primary); color:var(--text-primary); }
+    .filter-tab.active { background:var(--accent-primary-glow); border-color:var(--accent-primary); color:#a5b4fc; font-weight:600; }
+
+    /* Request Cards */
+    .request-cards { display:flex; flex-direction:column; gap:16px; }
+    .request-card {
+      background:var(--bg-card); border:1px solid var(--border-color);
+      border-radius:14px; overflow:hidden;
+      transition:border-color 0.2s, box-shadow 0.2s;
+      animation: fadeSlideIn 0.35s ease both;
+    }
+    @keyframes fadeSlideIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+    .request-card:hover { border-color:rgba(99,102,241,0.3); box-shadow:0 8px 32px rgba(0,0,0,0.3); }
+    .request-card.status-booked { border-left: 3px solid var(--accent-primary); }
+    .request-card.status-cancelled { border-left: 3px solid var(--text-muted); opacity:0.7; }
+    .request-card.status-inquiry { border-left: 3px solid #60a5fa; }
+
+    .card-top { padding:18px 20px; display:flex; align-items:flex-start; gap:14px; flex-wrap:wrap; }
+    .card-ref { font-family:var(--font-title); font-size:1.1rem; font-weight:800; color:var(--accent-primary); min-width:90px; }
+    .card-customer { flex:1; min-width:180px; }
+    .card-customer .name { font-weight:600; font-size:0.95rem; margin-bottom:2px; }
+    .card-customer .meta { font-size:0.78rem; color:var(--text-muted); display:flex; gap:12px; flex-wrap:wrap; }
+    .card-dates { text-align:right; min-width:140px; }
+    .card-dates .date-range { font-size:0.82rem; font-weight:500; }
+    .card-dates .duration { font-size:0.75rem; color:var(--text-muted); margin-top:2px; }
+    .card-cost { font-family:var(--font-title); font-weight:700; font-size:1rem; color:var(--accent-primary); margin-top:2px; }
+    .status-pill { display:inline-flex; align-items:center; gap:4px; border-radius:6px; padding:3px 10px; font-size:0.72rem; font-weight:700; letter-spacing:0.04em; white-space:nowrap; }
+
+    /* Gear chips */
+    .gear-row { padding:0 20px 14px; display:flex; gap:8px; flex-wrap:wrap; }
+    .gear-chip { background:var(--bg-card-hover); border:1px solid var(--border-color); border-radius:6px; padding:4px 10px; font-size:0.75rem; color:var(--text-secondary); display:flex; align-items:center; gap:6px; }
+    .gear-chip img { width:20px; height:20px; border-radius:3px; object-fit:cover; background:#0f1118; }
+
+    /* Action buttons */
+    .card-actions { padding:14px 20px; border-top:1px solid var(--border-color); display:flex; align-items:center; gap:10px; flex-wrap:wrap; background:rgba(0,0,0,0.1); }
+    .btn-confirm { background:linear-gradient(135deg,#10b981,#059669); color:#fff; border:none; border-radius:8px; padding:9px 20px; font-size:0.875rem; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:6px; transition:opacity 0.2s,transform 0.15s; }
+    .btn-confirm:hover { opacity:0.88; transform:translateY(-1px); }
+    .btn-reject { background:transparent; border:1px solid rgba(239,68,68,0.4); color:#fca5a5; border-radius:8px; padding:9px 20px; font-size:0.875rem; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:6px; transition:all 0.2s; }
+    .btn-reject:hover { background:rgba(239,68,68,0.1); border-color:var(--accent-danger); }
+    .btn-view { background:var(--bg-card-hover); border:1px solid var(--border-color); color:var(--text-secondary); border-radius:8px; padding:9px 16px; font-size:0.82rem; cursor:pointer; transition:all 0.2s; text-decoration:none; display:flex; align-items:center; gap:5px; }
+    .btn-view:hover { border-color:var(--accent-primary); color:var(--text-primary); }
+    .action-notes { flex:1; min-width:180px; background:var(--bg-card); border:1px solid var(--border-color); color:var(--text-primary); border-radius:8px; padding:8px 12px; font-size:0.8rem; font-family:var(--font-body); outline:none; }
+    .action-notes:focus { border-color:var(--accent-primary); }
+    .decided-label { font-size:0.82rem; color:var(--text-muted); font-style:italic; }
+
+    /* Empty state */
+    .empty-inbox { text-align:center; padding:80px 20px; color:var(--text-muted); }
+    .empty-inbox .icon { font-size:3rem; margin-bottom:16px; opacity:0.3; }
+    .empty-inbox p { font-size:0.95rem; }
+
+    /* Toast */
+    .toast { position:fixed; bottom:28px; left:50%; z-index:500; transform:translateX(-50%) translateY(100px); background:var(--bg-card); border:1px solid var(--border-color); color:var(--text-primary); border-radius:10px; padding:12px 20px; font-size:0.875rem; font-weight:500; display:flex; align-items:center; gap:10px; box-shadow:0 8px 32px rgba(0,0,0,0.5); transition:transform 0.35s cubic-bezier(0.4,0,0.2,1),opacity 0.3s; opacity:0; pointer-events:none; white-space:nowrap; }
+    .toast.show { transform:translateX(-50%) translateY(0); opacity:1; }
+    .toast.success { border-color:rgba(16,185,129,0.4); }
+    .toast.error { border-color:rgba(239,68,68,0.4); }
+
+    /* Badge on nav */
+    .nav-badge { background:var(--accent-danger); color:#fff; font-size:0.65rem; font-weight:800; padding:1px 6px; border-radius:10px; margin-left:4px; vertical-align:middle; }
+  </style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar">
+  <div class="brand">
+    <div class="brand-icon">
+      <img src="images/logo.jpg" alt="SD Digitals Logo" style="width:100%;height:100%;object-fit:cover;border-radius:8px;" />
+    </div>
+    <span class="brand-name">SD DIGITALS</span>
+  </div>
+  <ul class="nav-menu">
+    <li class="nav-item" id="nav-dashboard"><a href="index.html">
+        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+        Dashboard
+      </a></li>
+    <li class="nav-item" id="nav-workflow"><a href="workflow.html">
+        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+        Workflow Board
+      </a></li>
+    <li class="nav-item" id="nav-customers"><a href="customers.html">
+        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+        Customer Directory
+      </a></li>
+    <li class="nav-item" id="nav-rentals"><a href="rentals.html">
+        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+        Equipment Rentals
+      </a></li>
+    <li class="nav-item" id="nav-inventory"><a href="inventory.html">
+        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
+        Inventory Status
+      </a></li>
+    <li class="nav-item" id="nav-schedule"><a href="schedule.html">
+        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+        Follow-up Schedule
+      </a></li>
+    <li class="nav-item" id="nav-simulator"><a href="simulator.html">
+        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+        API Alert Simulator
+      </a></li>
+    <li class="nav-item active" id="nav-booking-requests"><a href="booking-requests.html" style="color:#a5b4fc;">
+        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+        Booking Requests <span class="nav-badge" id="sidebar-badge" style="display:none">0</span>
+      </a></li>
+    <li class="nav-item" id="nav-portal"><a href="portal.html" target="_blank" style="color:#a5b4fc;">
+        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+        Customer Portal ↗
+      </a></li>
+  </ul>
+    <div class="sidebar-footer" style="flex-direction:column;gap:8px;align-items:flex-start;">
+    <div style="display:flex;align-items:center;gap:10px;width:100%;">
+      <div class="user-avatar">—</div>
+      <div class="user-info">
+        <span class="user-name">—</span>
+        <span class="user-role">—</span>
+      </div>
+    </div>
+    <button onclick="logout()" style="width:100%;background:transparent;border:1px solid var(--border-color);color:var(--text-muted);border-radius:6px;padding:6px 10px;font-size:0.75rem;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--accent-danger,#ef4444)';this.style.color='#fca5a5'" onmouseout="this.style.borderColor='var(--border-color)';this.style.color='var(--text-muted)'">
+      <svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="2" fill="none"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+      Sign Out
+    </button>
+  </div>
+</div>
+
+<!-- Main Content -->
+<main class="main-content">
+  <header class="page-header">
+    <div class="page-title">
+      <h1>Booking Requests</h1>
+      <p>Review, confirm, or reject customer rental inquiries submitted via the portal</p>
+    </div>
+    <div class="page-actions" style="display:flex;gap:10px;align-items:center;">
+      <button onclick="loadRequests()" id="refresh-btn" style="background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-secondary);border-radius:8px;padding:8px 14px;font-size:0.82rem;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--accent-primary)'" onmouseout="this.style.borderColor='var(--border-color)'">
+        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 .49-3.29"></path></svg>
+        Refresh
+      </button>
+      <a href="portal.html" target="_blank" class="btn btn-primary" style="text-decoration:none;">
+        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" style="margin-right:4px;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+        View Portal
+      </a>
+    </div>
+  </header>
+
+  <!-- Filter Tabs -->
+  <div class="requests-header">
+    <div class="filter-tabs" id="filter-tabs">
+      <button class="filter-tab active" data-status="Inquiry" onclick="selectStatus(this)">
+        🔔 Pending <span id="count-Inquiry" style="margin-left:4px;background:rgba(59,130,246,0.2);color:#93c5fd;border-radius:4px;padding:1px 6px;font-size:0.7rem;"></span>
+      </button>
+      <button class="filter-tab" data-status="Booked" onclick="selectStatus(this)">
+        ✅ Confirmed <span id="count-Booked" style="margin-left:4px;background:rgba(99,102,241,0.2);color:#a5b4fc;border-radius:4px;padding:1px 6px;font-size:0.7rem;"></span>
+      </button>
+      <button class="filter-tab" data-status="Cancelled" onclick="selectStatus(this)">
+        ✕ Rejected <span id="count-Cancelled" style="margin-left:4px;background:rgba(107,114,128,0.2);color:#9ca3af;border-radius:4px;padding:1px 6px;font-size:0.7rem;"></span>
+      </button>
+    </div>
+    <div id="requests-meta" style="font-size:0.8rem;color:var(--text-muted);"></div>
+  </div>
+
+  <!-- Cards Container -->
+  <div id="request-cards" class="request-cards">
+    <div class="empty-inbox">
+      <div class="icon">📬</div>
+      <p>Loading booking requests…</p>
+    </div>
+  </div>
+</main>
+
+<!-- Toast -->
+<div class="toast" id="toast">
+  <span id="toast-icon">✓</span>
+  <span id="toast-msg">Done</span>
+</div>
+
+<script src="js/auth.js"></script>
+<script>
+/* ── State ── */
+let currentStatus = 'Inquiry';
+let allCounts = {};
+
+/* ── Auth token (set by auth.js via crt_token) ── */
+function getAuthToken() {
+  return localStorage.getItem('crt_token') || sessionStorage.getItem('crt_token') || '';
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  loadCounts();
+  loadRequests();
+});
+
+async function loadCounts() {
+  for (const s of ['Inquiry', 'Booked', 'Cancelled']) {
+    try {
+      const res = await fetch(`/api/portal/inquiries?status=${encodeURIComponent(s)}`, {
+        headers: { Authorization: `Bearer ${getAuthToken()}` }
+      });
+      const data = await res.json();
+      const count = Array.isArray(data) ? data.length : 0;
+      allCounts[s] = count;
+      const el = document.getElementById(`count-${s}`);
+      if (el) el.textContent = count > 0 ? count : '';
+    } catch {}
+  }
+  const pending = allCounts['Inquiry'] || 0;
+  const badge = document.getElementById('sidebar-badge');
+  if (pending > 0) { badge.textContent = pending; badge.style.display = 'inline'; }
+  else { badge.style.display = 'none'; }
+}
+
+function selectStatus(btn) {
+  currentStatus = btn.dataset.status;
+  document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  loadRequests();
+}
+
+async function loadRequests() {
+  const container = document.getElementById('request-cards');
+  const meta = document.getElementById('requests-meta');
+  container.innerHTML = `<div class="empty-inbox"><div class="icon">⏳</div><p>Loading…</p></div>`;
+
+  try {
+    const res = await fetch(`/api/portal/inquiries?status=${encodeURIComponent(currentStatus)}`, {
+      headers: { Authorization: `Bearer ${getAuthToken()}` }
+    });
+    if (!res.ok) throw new Error('Failed to load bookings');
+    const data = await res.json();
+
+    loadCounts();
+    meta.textContent = `${data.length} request${data.length !== 1 ? 's' : ''} · ${currentStatus}`;
+
+    if (data.length === 0) {
+      const emptyMessages = {
+        'Inquiry':   { icon:'📬', msg:'No pending booking requests. All clear!' },
+        'Booked':    { icon:'✅', msg:'No confirmed bookings yet.' },
+        'Cancelled': { icon:'🗑️', msg:'No rejected bookings.' }
+      };
+      const em = emptyMessages[currentStatus] || { icon:'📁', msg:'Nothing here.' };
+      container.innerHTML = `<div class="empty-inbox"><div class="icon">${em.icon}</div><p>${em.msg}</p></div>`;
+      return;
+    }
+
+    container.innerHTML = data.map((r, idx) => renderRequestCard(r, idx)).join('');
+  } catch (err) {
+    container.innerHTML = `<div class="empty-inbox"><div class="icon">⚠️</div><p>${err.message}</p></div>`;
+  }
+}
+
+function renderRequestCard(r, idx) {
+  const STATUS_STYLES = {
+    'Inquiry':    { bg:'rgba(59,130,246,0.15)',  color:'#93c5fd',  label:'⏳ Pending Review', cardClass:'status-inquiry' },
+    'Booked':     { bg:'rgba(16,185,129,0.15)',  color:'#6ee7b7',  label:'✅ Confirmed',       cardClass:'status-booked' },
+    'Cancelled':  { bg:'rgba(107,114,128,0.15)', color:'#9ca3af',  label:'✕ Rejected',         cardClass:'status-cancelled' },
+  };
+  const ss = STATUS_STYLES[r.status] || STATUS_STYLES['Inquiry'];
+
+  const start = new Date(r.rental_date);
+  const end = new Date(r.expected_return_date);
+  const days = Math.max(1, Math.ceil((end - start) / 86400000));
+  const submittedAt = new Date(r.created_at).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+
+  const gearChips = r.items.map(it => `
+    <div class="gear-chip">
+      <img src="${it.image_url||''}" onerror="this.style.display='none'" alt="">
+      ${it.quantity}× ${it.equipment_name}
+    </div>`).join('');
+
+  const isPending = r.status === 'Inquiry';
+
+  const actionButtons = isPending ? `
+    <input type="text" class="action-notes" id="notes-${r.id}" placeholder="Optional note for this decision…">
+    <button class="btn-confirm" onclick="decide(${r.id}, 'confirm')">
+      <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none"><polyline points="20 6 9 17 4 12"></polyline></svg>
+      Confirm Booking
+    </button>
+    <button class="btn-reject" onclick="decide(${r.id}, 'reject')">
+      <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      Reject
+    </button>` :
+    `<span class="decided-label">${r.status === 'Booked' ? '✅ Booking was confirmed' : '✕ Booking was rejected'}</span>`;
+
+  return `
+    <div class="request-card ${ss.cardClass}" id="card-${r.id}" style="animation-delay:${idx*60}ms">
+      <div class="card-top">
+        <div class="card-ref">${r.booking_ref}</div>
+        <div class="card-customer">
+          <div class="name">${r.customer_name}</div>
+          <div class="meta">
+            <span>📧 ${r.customer_email}</span>
+            <span>📱 ${r.customer_phone}</span>
+            <span>🏷️ ${r.customer_type}</span>
+          </div>
+          <div style="margin-top:6px;">
+            <span class="status-pill" style="background:${ss.bg};color:${ss.color};">${ss.label}</span>
+          </div>
+        </div>
+        <div class="card-dates">
+          <div class="date-range">
+            <span style="color:var(--text-muted);font-size:0.72rem;">PICKUP</span><br>
+            <strong>${r.rental_date}</strong>
+          </div>
+          <div style="margin:4px 0;color:var(--text-muted);">→</div>
+          <div class="date-range">
+            <span style="color:var(--text-muted);font-size:0.72rem;">RETURN</span><br>
+            <strong>${r.expected_return_date}</strong>
+          </div>
+          <div class="duration">${days} day${days!==1?'s':''}</div>
+          <div class="card-cost">₹${Number(r.cost_estimate).toLocaleString('en-IN')}</div>
+          <div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;">excl. GST</div>
+        </div>
+      </div>
+
+      <!-- Gear Items -->
+      <div class="gear-row">${gearChips}</div>
+
+      <!-- Submitted at -->
+      <div style="padding:0 20px 10px;font-size:0.72rem;color:var(--text-muted);">Submitted: ${submittedAt}</div>
+
+      <!-- Action Row -->
+      <div class="card-actions">
+        <a href="rentals.html" class="btn-view">
+          <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2" fill="none"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+          Open in Rentals
+        </a>
+        ${actionButtons}
+      </div>
+    </div>`;
+}
+
+/* ── Confirm / Reject ── */
+async function decide(rentalId, action) {
+  const notes = document.getElementById(`notes-${rentalId}`)?.value || '';
+  const card = document.getElementById(`card-${rentalId}`);
+
+  // Find and disable the buttons
+  const btns = card.querySelectorAll('.btn-confirm, .btn-reject');
+  btns.forEach(b => { b.disabled = true; b.style.opacity = '0.5'; });
+
+  try {
+    const res = await fetch(`/api/portal/booking/${rentalId}/decision`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAuthToken()}` },
+      body: JSON.stringify({ action, notes })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Action failed');
+
+    const label = action === 'confirm' ? 'Booking confirmed! ✅' : 'Booking rejected.';
+    showToast(label, action === 'confirm' ? 'success' : 'error');
+
+    // Animate card out then reload
+    card.style.transition = 'opacity 0.4s, transform 0.4s';
+    card.style.opacity = '0';
+    card.style.transform = 'translateX(40px)';
+    setTimeout(() => loadRequests(), 420);
+  } catch (err) {
+    showToast(err.message, 'error');
+    btns.forEach(b => { b.disabled = false; b.style.opacity = '1'; });
+  }
+}
+
+/* ── Toast ── */
+let toastTimer;
+function showToast(msg, type = 'success') {
+  const toast = document.getElementById('toast');
+  document.getElementById('toast-msg').textContent = msg;
+  document.getElementById('toast-icon').textContent = type === 'success' ? '✓' : '✕';
+  toast.className = `toast ${type} show`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 3000);
+}
+
+// initAuth handled by auth.js on page load
+</script>
+</body>
+</html>

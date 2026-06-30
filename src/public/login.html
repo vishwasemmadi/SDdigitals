@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SD Digitals — Owner Login</title>
+  <meta name="description" content="Secure login to SD Digitals equipment rental management portal">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+    :root {
+      --bg:       #04050a;
+      --card:     #181b24;
+      --border:   #262b37;
+      --input-bg: #11131a;
+      --primary:  #6366f1;
+      --primary-glow: rgba(99,102,241,0.22);
+      --text:     #f3f4f6;
+      --muted:    #9ca3af;
+      --danger:   #ef4444;
+      --success:  #10b981;
+    }
+
+    body {
+      min-height: 100vh;
+      background: var(--bg);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Inter', sans-serif;
+      background-image:
+        radial-gradient(ellipse 60% 50% at 50% 0%, rgba(99,102,241,0.18) 0%, transparent 70%),
+        radial-gradient(circle at 20% 80%, rgba(6,182,212,0.06) 0%, transparent 50%);
+      padding: 20px;
+    }
+
+    ::-webkit-scrollbar { width:4px; }
+    ::-webkit-scrollbar-thumb { background:var(--border); border-radius:20px; }
+
+    /* ── Card ── */
+    .login-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      width: 100%; max-width: 420px;
+      overflow: hidden;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(99,102,241,0.08);
+      animation: slideUp 0.45s cubic-bezier(0.4,0,0.2,1) both;
+    }
+    @keyframes slideUp {
+      from { opacity:0; transform:translateY(28px) scale(0.97); }
+      to   { opacity:1; transform:translateY(0) scale(1); }
+    }
+
+    /* ── Card top gradient strip ── */
+    .card-top {
+      background: linear-gradient(135deg, #6366f1 0%, #4f46e5 55%, #06b6d4 100%);
+      padding: 32px 32px 28px;
+      position: relative; overflow:hidden;
+    }
+    .card-top::before {
+      content:'';
+      position:absolute; inset:0;
+      background-image: radial-gradient(circle at 80% 20%, rgba(255,255,255,0.1) 0%, transparent 60%);
+    }
+    .lock-icon {
+      width: 52px; height: 52px; border-radius: 14px;
+      background: rgba(255,255,255,0.15);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.2);
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 16px; position: relative; z-index: 1;
+    }
+    .card-top h1 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.45rem; font-weight: 800;
+      color: #fff; position: relative; z-index: 1; margin-bottom: 4px;
+    }
+    .card-top p {
+      color: rgba(255,255,255,0.7);
+      font-size: 0.82rem; position: relative; z-index: 1;
+    }
+
+    /* ── Form body ── */
+    .card-body { padding: 28px 32px 32px; }
+
+    .form-group { margin-bottom: 18px; }
+    .form-group label {
+      display: block; margin-bottom: 7px;
+      font-size: 0.78rem; font-weight: 600;
+      color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em;
+    }
+    .input-wrap {
+      position: relative; display: flex; align-items: center;
+    }
+    .input-wrap svg {
+      position: absolute; left: 13px; pointer-events: none; flex-shrink: 0;
+      color: var(--muted); transition: color 0.2s;
+    }
+    .input-wrap input {
+      width: 100%; background: var(--input-bg);
+      border: 1px solid var(--border); color: var(--text);
+      border-radius: 10px; padding: 11px 13px 11px 40px;
+      font-size: 0.9rem; font-family: 'Inter', sans-serif;
+      outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .input-wrap input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
+    .input-wrap input:focus + svg,
+    .input-wrap:focus-within svg { color: var(--primary); }
+    .input-wrap input::placeholder { color: #4b5563; }
+
+    /* Password toggle */
+    .pw-toggle {
+      position: absolute; right: 12px; cursor: pointer;
+      color: var(--muted); transition: color 0.2s;
+      display: flex; align-items: center;
+    }
+    .pw-toggle:hover { color: var(--text); }
+
+    /* Error message */
+    .error-banner {
+      background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3);
+      border-radius: 8px; padding: 10px 14px;
+      color: #fca5a5; font-size: 0.82rem;
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 16px; display: none;
+    }
+    .error-banner.show { display: flex; }
+
+    /* Submit button */
+    .btn-login {
+      width: 100%; padding: 13px;
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      color: #fff; border: none; border-radius: 10px;
+      font-size: 0.95rem; font-weight: 700;
+      font-family: 'Outfit', sans-serif;
+      cursor: pointer; transition: opacity 0.2s, transform 0.15s;
+      box-shadow: 0 4px 20px rgba(99,102,241,0.35);
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      margin-top: 4px;
+    }
+    .btn-login:hover { opacity: 0.88; transform: translateY(-1px); }
+    .btn-login:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .spinner {
+      width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff; border-radius: 50%;
+      animation: spin 0.7s linear infinite; display: none;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Divider */
+    .divider {
+      text-align: center; margin: 20px 0 0;
+      font-size: 0.75rem; color: var(--muted);
+    }
+    .divider a {
+      color: #a5b4fc; text-decoration: none; font-weight: 500;
+    }
+    .divider a:hover { text-decoration: underline; }
+
+    /* Footer note */
+    .security-note {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 0.72rem; color: #374151;
+      justify-content: center; padding: 14px 32px;
+      border-top: 1px solid var(--border);
+    }
+    .security-note svg { flex-shrink: 0; }
+  </style>
+</head>
+<body>
+
+<div class="login-card">
+  <!-- Gradient top header -->
+  <div class="card-top">
+    <div class="lock-icon">
+      <svg viewBox="0 0 24 24" width="24" height="24" stroke="#fff" stroke-width="2.5" fill="none">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+      </svg>
+    </div>
+    <h1>Owner Portal Login</h1>
+    <p>Enter your credentials to access the SD Digitals management dashboard</p>
+  </div>
+
+  <!-- Login Form -->
+  <div class="card-body">
+    <div class="error-banner" id="error-banner">
+      <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" style="flex-shrink:0;">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      <span id="error-text">Invalid credentials</span>
+    </div>
+
+    <form id="login-form" autocomplete="off" novalidate>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <div class="input-wrap">
+          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+          <input type="password" id="password" name="password" placeholder="Enter your password" required autocomplete="current-password">
+          <span class="pw-toggle" id="pw-toggle" onclick="togglePw()" title="Show/hide password">
+            <svg id="pw-icon-hide" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"></path>
+              <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"></path>
+              <line x1="1" y1="1" x2="23" y2="23"></line>
+            </svg>
+            <svg id="pw-icon-show" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" style="display:none">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+          </span>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-login" id="login-btn">
+        <div class="spinner" id="spinner"></div>
+        <span id="btn-text">
+          <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2.5" fill="none" style="vertical-align:-3px;margin-right:4px;">
+            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+            <polyline points="10 17 15 12 10 7"></polyline>
+            <line x1="15" y1="12" x2="3" y2="12"></line>
+          </svg>
+          Sign In to Dashboard
+        </span>
+      </button>
+    </form>
+
+    <div class="divider">
+      Not the owner? &nbsp;<a href="portal.html">View Customer Portal →</a>
+    </div>
+  </div>
+
+  <!-- Security badge -->
+  <div class="security-note">
+    <svg viewBox="0 0 24 24" width="12" height="12" stroke="#4b5563" stroke-width="2" fill="none">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+    </svg>
+    Secured connection · SD Digitals CRM v1.0
+  </div>
+</div>
+
+<script>
+  // ── If already logged in, go straight to dashboard ──
+  const tok = localStorage.getItem('crt_token') || sessionStorage.getItem('crt_token');
+  if (tok) window.location.replace('index.html');
+
+  // ── Read "next" redirect param ──
+  const nextPage = new URLSearchParams(window.location.search).get('next') || 'index.html';
+
+  // ── Password visibility toggle ──
+  function togglePw() {
+    const inp = document.getElementById('password');
+    const hide = document.getElementById('pw-icon-hide');
+    const show = document.getElementById('pw-icon-show');
+    if (inp.type === 'password') {
+      inp.type = 'text'; hide.style.display = 'none'; show.style.display = '';
+    } else {
+      inp.type = 'password'; hide.style.display = ''; show.style.display = 'none';
+    }
+  }
+
+  // ── Login form submit ──
+  document.getElementById('login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const username  = 'admin';
+    const password  = document.getElementById('password').value;
+    const errBanner = document.getElementById('error-banner');
+    const errText   = document.getElementById('error-text');
+    const btn       = document.getElementById('login-btn');
+    const spinner   = document.getElementById('spinner');
+    const btnText   = document.getElementById('btn-text');
+
+    if (!password) {
+      errText.textContent = 'Please enter your password.';
+      errBanner.classList.add('show');
+      return;
+    }
+
+    // Loading state
+    btn.disabled = true;
+    spinner.style.display = 'block';
+    btnText.style.display = 'none';
+    errBanner.classList.remove('show');
+
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        localStorage.setItem('crt_token', data.token);
+        localStorage.setItem('crt_user', JSON.stringify(data.user));
+        window.location.replace(nextPage);
+      } else {
+        errText.textContent = data.error || 'Invalid password.';
+        errBanner.classList.add('show');
+        // Shake animation on wrong password
+        document.querySelector('.login-card').style.animation = 'none';
+        document.getElementById('password').style.borderColor = 'var(--danger)';
+        setTimeout(() => { document.getElementById('password').style.borderColor = ''; }, 1500);
+      }
+    } catch {
+      errText.textContent = 'Network error — is the server running?';
+      errBanner.classList.add('show');
+    } finally {
+      btn.disabled = false;
+      spinner.style.display = 'none';
+      btnText.style.display = '';
+    }
+  });
+
+  // Focus password field on load
+  window.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('password').focus();
+  });
+</script>
+</body>
+</html>

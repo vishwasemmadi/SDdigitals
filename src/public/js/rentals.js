@@ -1,9 +1,11 @@
 // Rentals Controller for SD Digitals Rental CRM
 
 let equipmentInventory = [];
+let emailAutomationEnabled = localStorage.getItem('emailAutomationEnabled') === 'true';
 
 document.addEventListener('DOMContentLoaded', () => {
   highlightNav('nav-rentals');
+  updateEmailToggleButton();
 
   const urlParams = new URLSearchParams(window.location.search);
   const action = urlParams.get('action');
@@ -15,6 +17,34 @@ document.addEventListener('DOMContentLoaded', () => {
     loadRentalsList();
   }
 });
+
+function updateEmailToggleButton() {
+  const btn = document.getElementById('btn-toggle-email');
+  if (!btn) return;
+  if (emailAutomationEnabled) {
+    btn.className = 'btn btn-success';
+    btn.innerHTML = `
+      <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" style="margin-right: 4px;"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+      Email Alerts: Enabled
+    `;
+  } else {
+    btn.className = 'btn btn-secondary';
+    btn.innerHTML = `
+      <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" style="margin-right: 4px; opacity: 0.6;"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+      Email Alerts: Disabled
+    `;
+  }
+}
+
+function toggleEmailAutomation() {
+  emailAutomationEnabled = !emailAutomationEnabled;
+  localStorage.setItem('emailAutomationEnabled', emailAutomationEnabled);
+  updateEmailToggleButton();
+  showNotification(
+    emailAutomationEnabled ? 'Automated status emails enabled.' : 'Automated status emails disabled.',
+    'info'
+  );
+}
 
 // -------------------------------------------------------------
 // 1. Registry List View
@@ -158,11 +188,30 @@ async function changeRentalStatus(rentalId, newStatus) {
     const res = await fetch(`${API_BASE}/api/rentals/${rentalId}/status`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: newStatus })
+      body: JSON.stringify({ 
+        status: newStatus,
+        send_email: emailAutomationEnabled
+      })
     });
 
     if (res.ok) {
+      const data = await res.json();
       showNotification(`Rental status updated to ${newStatus}.`, 'success');
+
+      if (data.emailSent) {
+        let logs = JSON.parse(sessionStorage.getItem('sim_logs') || '[]');
+        logs.unshift({
+          timestamp: new Date().toISOString(),
+          type: 'Email',
+          customerId: data.emailSent.customer_id,
+          message: data.emailSent.message,
+          status: 'Success',
+          api_response: data.emailSent.api_response
+        });
+        sessionStorage.setItem('sim_logs', JSON.stringify(logs));
+        window.dispatchEvent(new CustomEvent('simulation_logged'));
+      }
+
       loadRentalsList();
     } else {
       const err = await res.json();

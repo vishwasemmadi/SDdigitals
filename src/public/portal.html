@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SD Digitals — Equipment Rental Portal</title>
+  <meta name="description" content="Browse and book professional cinema cameras, lenses, audio, lighting and rigging equipment from SD Digitals. Instant booking inquiries.">
+  <link rel="stylesheet" href="css/portal.css">
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════
+     TOP NAVIGATION BAR
+══════════════════════════════════════════ -->
+<nav class="portal-nav" id="portal-nav">
+  <div class="brand">
+    <img src="images/logo.jpg" alt="SD Digitals" class="brand-logo" onerror="this.style.display='none'">
+    <span class="brand-name">SD <span>DIGITALS</span></span>
+  </div>
+  <div class="nav-links">
+    <a href="#catalogue">Browse Gear</a>
+    <a href="#how-it-works">How It Works</a>
+    <a href="login.html" onclick="localStorage.removeItem('crt_token'); sessionStorage.removeItem('crt_token'); localStorage.removeItem('crt_user'); sessionStorage.removeItem('crt_user');">Staff Login</a>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center;">
+    <button id="customer-login-btn" onclick="openCustomerLogin()" style="background:var(--bg-card);border:1px solid var(--border-color);color:var(--text-primary);border-radius:8px;padding:8px 14px;font-size:0.875rem;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:6px;transition:border-color 0.2s,background 0.2s;">
+      <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+        <circle cx="12" cy="7" r="4"></circle>
+      </svg>
+      Login
+    </button>
+    <div id="customer-user-badge" style="display:none;align-items:center;gap:10px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:8px;padding:6px 12px;">
+      <span id="customer-email-display" style="font-size:0.8rem;color:var(--text-secondary);font-weight:500;"></span>
+      <button onclick="customerLogout()" style="background:none;border:none;color:var(--accent-danger);cursor:pointer;font-size:0.75rem;text-decoration:underline;padding:0;">Logout</button>
+    </div>
+    <button id="cart-nav-btn" onclick="openCart()" aria-label="View cart">
+      <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+        <circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle>
+        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+      </svg>
+      Cart
+      <span id="cart-count" style="display:none">0</span>
+    </button>
+    <button class="nav-cta" onclick="openCart()">
+      <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none">
+        <line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line>
+      </svg>
+      Book Now
+    </button>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════════
+     HERO SECTION
+══════════════════════════════════════════ -->
+<section class="portal-hero">
+  <div class="hero-tag">
+    <span class="dot"></span>
+    Professional Equipment Rentals
+  </div>
+  <h1>
+    Cinema Gear for<br><span class="highlight">Every Production</span>
+  </h1>
+  <p>Browse our full fleet of cinema cameras, lenses, audio, lighting and rigging gear. Add to cart, pick your dates, submit an inquiry — we'll confirm within the hour.</p>
+  <div class="hero-stats" id="hero-stats">
+    <div class="hero-stat">
+      <div class="value" id="stat-total">—</div>
+      <div class="label">Items Available</div>
+    </div>
+    <div class="hero-stat">
+      <div class="value">10+</div>
+      <div class="label">Equipment Types</div>
+    </div>
+    <div class="hero-stat">
+      <div class="value">₹500/day</div>
+      <div class="label">Starting From</div>
+    </div>
+  </div>
+</section>
+
+<!-- How It Works -->
+<section id="how-it-works" style="max-width:900px;margin:0 auto;padding:48px 24px 8px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;">
+  <div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:14px;padding:20px 18px;text-align:center;">
+    <div style="width:44px;height:44px;border-radius:50%;background:var(--accent-primary-glow);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-family:var(--font-title);font-weight:800;color:var(--accent-primary);">1</div>
+    <div style="font-weight:600;font-size:0.9rem;margin-bottom:6px;">Browse & Select</div>
+    <div style="font-size:0.8rem;color:var(--text-muted);line-height:1.5">Filter by category, add gear to your cart</div>
+  </div>
+  <div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:14px;padding:20px 18px;text-align:center;">
+    <div style="width:44px;height:44px;border-radius:50%;background:var(--accent-primary-glow);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-family:var(--font-title);font-weight:800;color:var(--accent-primary);">2</div>
+    <div style="font-weight:600;font-size:0.9rem;margin-bottom:6px;">Fill Your Details</div>
+    <div style="font-size:0.8rem;color:var(--text-muted);line-height:1.5">Name, contact, rental dates & notes</div>
+  </div>
+  <div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:14px;padding:20px 18px;text-align:center;">
+    <div style="width:44px;height:44px;border-radius:50%;background:var(--accent-primary-glow);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-family:var(--font-title);font-weight:800;color:var(--accent-primary);">3</div>
+    <div style="font-weight:600;font-size:0.9rem;margin-bottom:6px;">We Confirm</div>
+    <div style="font-size:0.8rem;color:var(--text-muted);line-height:1.5">Our team reviews & confirms your booking</div>
+  </div>
+  <div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:14px;padding:20px 18px;text-align:center;">
+    <div style="width:44px;height:44px;border-radius:50%;background:var(--accent-primary-glow);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-family:var(--font-title);font-weight:800;color:var(--accent-primary);">4</div>
+    <div style="font-weight:600;font-size:0.9rem;margin-bottom:6px;">Pick Up & Shoot</div>
+    <div style="font-size:0.8rem;color:var(--text-muted);line-height:1.5">Collect from SD Digitals studio & get rolling</div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     TRACK MY BOOKING SECTION
+══════════════════════════════════════════ -->
+<section id="track-section" style="max-width:700px;margin:32px auto 0;padding:0 24px;">
+  <div id="track-card" style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:16px;padding:28px 28px;position:relative;overflow:hidden;">
+    <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#6366f1,#06b6d4);"></div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+      <svg viewBox="0 0 24 24" width="20" height="20" stroke="#a5b4fc" stroke-width="2" fill="none">
+        <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <span style="font-family:var(--font-title);font-size:1.05rem;font-weight:700;">Track My Booking</span>
+    </div>
+    <p style="color:var(--text-muted);font-size:0.82rem;margin-bottom:18px;">Enter your email address or booking reference to see your rental status.</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <input id="track-input" type="text" placeholder="e.g. SD-0006  or  your@email.com"
+        style="flex:1;min-width:220px;background:var(--bg-sidebar);border:1px solid var(--border-color);color:var(--text-primary);border-radius:8px;padding:10px 14px;font-size:0.875rem;font-family:var(--font-body);outline:none;transition:border-color 0.2s;"
+        onfocus="this.style.borderColor='var(--accent-primary)'" onblur="this.style.borderColor='var(--border-color)'"
+        onkeydown="if(event.key==='Enter') trackBooking()">
+      <button onclick="trackBooking()" id="track-btn"
+        style="background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;border:none;border-radius:8px;padding:10px 22px;font-size:0.875rem;font-weight:700;cursor:pointer;transition:opacity 0.2s;white-space:nowrap;"
+        onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none" style="margin-right:5px;vertical-align:-2px;">
+          <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        Track
+      </button>
+    </div>
+    <div id="track-results" style="margin-top:16px;"></div>
+  </div>
+</section>
+
+<!-- Track Status Modal -->
+<div id="track-modal-overlay" style="position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity 0.25s;">
+  <div id="track-modal" style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:18px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;transform:scale(0.92) translateY(20px);transition:transform 0.3s cubic-bezier(0.4,0,0.2,1);">
+    <div style="background:linear-gradient(135deg,#6366f1,#4f46e5,#06b6d4);padding:22px 24px 18px;border-radius:18px 18px 0 0;display:flex;justify-content:space-between;align-items:flex-start;">
+      <div>
+        <div style="font-family:var(--font-title);font-size:1.1rem;font-weight:700;color:#fff;" id="tm-ref">Booking #SD-0000</div>
+        <div id="tm-status-badge" style="display:inline-block;margin-top:6px;border-radius:6px;padding:3px 12px;font-size:0.72rem;font-weight:700;letter-spacing:0.05em;"></div>
+      </div>
+      <button onclick="closeTrackModal()" style="background:rgba(255,255,255,0.15);border:none;color:#fff;border-radius:6px;width:30px;height:30px;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>
+    </div>
+    <div style="padding:22px 24px;" id="track-modal-body"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     CATALOGUE SECTION
+══════════════════════════════════════════ -->
+<section class="catalogue-section" id="catalogue">
+  <div class="section-header">
+    <div>
+      <h2>Available Equipment</h2>
+      <p id="catalogue-count" style="margin-top:4px;">Loading gear...</p>
+    </div>
+    <div class="search-bar">
+      <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+        <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <input type="text" id="search-input" placeholder="Search by name, brand…" oninput="filterEquipment()">
+    </div>
+  </div>
+
+  <!-- Category Tabs -->
+  <div class="category-tabs" id="category-tabs">
+    <button class="cat-tab active" data-cat="All" onclick="selectCat(this)">All</button>
+    <button class="cat-tab" data-cat="Camera" onclick="selectCat(this)">📷 Camera</button>
+    <button class="cat-tab" data-cat="Lens" onclick="selectCat(this)">🔭 Lens</button>
+    <button class="cat-tab" data-cat="Audio" onclick="selectCat(this)">🎙️ Audio</button>
+    <button class="cat-tab" data-cat="Lighting" onclick="selectCat(this)">💡 Lighting</button>
+    <button class="cat-tab" data-cat="Rigging" onclick="selectCat(this)">🎬 Rigging</button>
+    <button class="cat-tab" data-cat="Drone" onclick="selectCat(this)">🚁 Drone</button>
+    <button class="cat-tab" data-cat="Monitor" onclick="selectCat(this)">🖥️ Monitor</button>
+    <button class="cat-tab" data-cat="Support" onclick="selectCat(this)">🎥 Support</button>
+    <button class="cat-tab" data-cat="Storage" onclick="selectCat(this)">💾 Storage</button>
+    <button class="cat-tab" data-cat="Accessory" onclick="selectCat(this)">🔌 Accessory</button>
+  </div>
+
+  <!-- Equipment Grid -->
+  <div class="equipment-grid" id="equipment-grid">
+    <div class="empty-state">
+      <svg viewBox="0 0 24 24" width="48" height="48" stroke="currentColor" stroke-width="1.5" fill="none">
+        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+      </svg>
+      <p>Loading available equipment…</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     CART DRAWER
+══════════════════════════════════════════ -->
+<div class="cart-overlay" id="cart-overlay" onclick="closeCart()"></div>
+<div class="cart-drawer" id="cart-drawer">
+  <div class="cart-header">
+    <h3>
+      <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" style="margin-right:6px;vertical-align:-3px;">
+        <circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle>
+        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+      </svg>
+      Your Cart
+    </h3>
+    <button class="cart-close" onclick="closeCart()" aria-label="Close cart">
+      <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none">
+        <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+    </button>
+  </div>
+  <div class="cart-items-list" id="cart-items-list">
+    <div class="cart-empty" id="cart-empty">
+      <svg viewBox="0 0 24 24" width="48" height="48" stroke="currentColor" stroke-width="1.5" fill="none">
+        <circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle>
+        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+      </svg>
+      <p>Your cart is empty.<br>Add some gear to get started!</p>
+    </div>
+  </div>
+  <div class="cart-footer">
+    <div class="cart-total-row">
+      <span class="cart-total-label">Estimated Total <small>(per day × qty)</small></span>
+      <span class="cart-total-value" id="cart-total">₹0</span>
+    </div>
+    <p class="cart-total-note">Final cost calculated based on rental duration. GST (18%) will be added.</p>
+    <button class="book-now-btn" id="book-now-btn" onclick="openBookingModal()" disabled>
+      <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none">
+        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.41 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.8a16 16 0 0 0 6.29 6.29l.98-.98a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"></path>
+      </svg>
+      Request Booking
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     CUSTOMER LOGIN MODAL
+══════════════════════════════════════════ -->
+<div class="modal-overlay" id="customer-login-overlay">
+  <div class="booking-modal" style="max-width:420px;">
+    <div class="modal-top">
+      <h2>Customer Portal Login</h2>
+      <p>Log in using your email address to access all your previous bookings.</p>
+    </div>
+    <div class="modal-body">
+      <div class="error-msg" id="cust-login-error"></div>
+      <div class="form-group" style="margin-bottom:16px;">
+        <label>Email Address *</label>
+        <input type="email" id="cust-login-email" placeholder="you@email.com" required>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" onclick="closeCustomerLogin()">Cancel</button>
+        <button type="button" class="btn-submit" onclick="submitCustomerLogin()" id="cust-login-btn">
+          <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none">
+            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+            <polyline points="10 17 15 12 10 7"></polyline>
+            <line x1="15" y1="12" x2="3" y2="12"></line>
+          </svg>
+          Log In
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     BOOKING FORM MODAL
+══════════════════════════════════════════ -->
+<div class="modal-overlay" id="booking-modal-overlay">
+  <div class="booking-modal" id="booking-modal">
+    <div class="modal-top">
+      <h2>Complete Your Booking</h2>
+      <p>Fill in your details and we'll confirm availability within the hour.</p>
+    </div>
+    <div class="modal-body">
+
+      <!-- Error message -->
+      <div class="error-msg" id="booking-error">Please fill in all required fields correctly.</div>
+
+      <!-- Order summary -->
+      <div class="order-summary">
+        <h4>Order Summary</h4>
+        <div id="modal-order-items"></div>
+        <div class="total-row">
+          <span class="total-label">Est. Total <small>(per day × qty)</small></span>
+          <span class="total-amount" id="modal-total-display">₹0</span>
+        </div>
+      </div>
+
+      <!-- Booking form -->
+      <form id="booking-form" onsubmit="submitBooking(event)">
+        <div class="form-grid">
+          <div class="form-group full">
+            <label>Full Name *</label>
+            <input type="text" id="f-name" placeholder="Your full name" required>
+          </div>
+          <div class="form-group">
+            <label>Email *</label>
+            <input type="email" id="f-email" placeholder="you@email.com" required>
+          </div>
+          <div class="form-group">
+            <label>Phone *</label>
+            <input type="tel" id="f-phone" placeholder="+91 98765 43210" required>
+          </div>
+          <div class="form-group">
+            <label>Client Type</label>
+            <select id="f-type">
+              <option value="Filmmaker">Filmmaker</option>
+              <option value="Photographer">Photographer</option>
+              <option value="YouTuber">YouTuber</option>
+              <option value="Production House">Production House</option>
+              <option value="General">General</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Pickup Date *</label>
+            <input type="date" id="f-rental-date" required>
+          </div>
+          <div class="form-group">
+            <label>Return Date *</label>
+            <input type="date" id="f-return-date" required>
+          </div>
+          <div class="form-group full">
+            <label>Project Notes</label>
+            <textarea id="f-notes" placeholder="Tell us about your shoot, any special requirements…"></textarea>
+          </div>
+        </div>
+
+        <div class="duration-badge" id="duration-badge">Select dates above</div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" onclick="closeBookingModal()">Cancel</button>
+          <button type="submit" class="btn-submit" id="submit-btn">
+            <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            Submit Inquiry
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     CONFIRMATION SCREEN
+══════════════════════════════════════════ -->
+<div class="confirmation-overlay" id="confirmation-overlay">
+  <div class="confirmation-card">
+    <div class="confirm-icon">✓</div>
+    <h2>Booking Received!</h2>
+    <p class="sub">Your inquiry has been submitted. Our team will reach out to confirm availability and finalise the booking.</p>
+    <div class="booking-ref-box">
+      <div class="ref-label">Your Booking Reference</div>
+      <div class="ref-value" id="confirm-ref">SD-0000</div>
+    </div>
+    <div class="confirm-summary" id="confirm-summary"></div>
+    <div class="next-steps">
+      <strong>📌 What happens next?</strong>
+      Our team will call / WhatsApp you within 1–2 hours to confirm gear availability and arrange pickup details.
+    </div>
+    <button class="btn-home" onclick="resetPortal()">Browse More Gear</button>
+    <br>
+    <button class="btn-ghost" onclick="closeConfirmation()">View Another Booking</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TOAST
+══════════════════════════════════════════ -->
+<div class="toast" id="toast">
+  <span class="toast-icon" id="toast-icon">✓</span>
+  <span id="toast-msg">Added to cart</span>
+</div>
+
+<!-- ══════════════════════════════════════════
+     FOOTER
+══════════════════════════════════════════ -->
+<footer class="portal-footer">
+  <div class="footer-brand">SD DIGITALS</div>
+  <p>Camera &amp; Equipment Rentals · VFX &amp; Post Production · Bangalore, India</p>
+  <p style="margin-top:8px;">Questions? <a href="mailto:info@sddigitals.com">info@sddigitals.com</a> &nbsp;|&nbsp; <a href="tel:+918888877777">+91 88888 77777</a></p>
+</footer>
+
+<!-- ══════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════ -->
+<script>
+/* ── State ── */
+let allEquipment = [];
+let cart = [];       // [{ equipment, quantity }]
+let activeCat = 'All';
+
+/* ── Fetch equipment on load ── */
+async function loadEquipment() {
+  try {
+    const res = await fetch('/api/portal/equipment');
+    if (!res.ok) throw new Error('Failed to load');
+    allEquipment = await res.json();
+    document.getElementById('stat-total').textContent = allEquipment.length;
+    document.getElementById('catalogue-count').textContent = `${allEquipment.length} items ready to rent`;
+    renderGrid();
+  } catch (e) {
+    document.getElementById('equipment-grid').innerHTML = `
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24" width="48" height="48" stroke="currentColor" stroke-width="1.5" fill="none">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <p>Unable to load equipment. Please refresh.</p>
+      </div>`;
+  }
+}
+
+/* ── Render the equipment grid ── */
+function renderGrid() {
+  const search = document.getElementById('search-input').value.toLowerCase();
+  const grid = document.getElementById('equipment-grid');
+
+  const filtered = allEquipment.filter(eq => {
+    const matchCat = activeCat === 'All' || eq.category === activeCat;
+    const matchSearch = !search
+      || eq.name.toLowerCase().includes(search)
+      || (eq.company || '').toLowerCase().includes(search)
+      || (eq.category || '').toLowerCase().includes(search);
+    return matchCat && matchSearch;
+  });
+
+  document.getElementById('catalogue-count').textContent =
+    filtered.length === allEquipment.length
+      ? `${allEquipment.length} items ready to rent`
+      : `${filtered.length} of ${allEquipment.length} items`;
+
+  if (filtered.length === 0) {
+    grid.innerHTML = `
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24" width="48" height="48" stroke="currentColor" stroke-width="1.5" fill="none">
+          <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <p>No equipment matches your search.</p>
+      </div>`;
+    return;
+  }
+
+  grid.innerHTML = filtered.map((eq, idx) => {
+    const inCart = cart.some(c => c.equipment.id === eq.id);
+    const rateFormatted = `₹${Number(eq.rental_rate).toLocaleString('en-IN')}`;
+    const imgSrc = eq.image_url || '';
+    const delay = Math.min(idx * 40, 400);
+    return `
+      <div class="equip-card${inCart ? ' in-cart' : ''}" id="card-${eq.id}" style="animation-delay:${delay}ms">
+        <div class="card-img-wrap">
+          ${imgSrc
+            ? `<img src="${imgSrc}" alt="${eq.name}" loading="lazy" onerror="this.parentElement.style.background='#181b24'">`
+            : `<div style="height:100%;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:2rem;">📷</div>`}
+          <span class="avail-badge">Available</span>
+          <span class="cat-pill">${eq.category}</span>
+        </div>
+        <div class="card-body">
+          <div class="card-title">${eq.name}</div>
+          <div class="card-company">${eq.company || ''} &nbsp;·&nbsp; S/N: ${eq.serial_number}</div>
+          <div class="card-rate">${rateFormatted} <span>/ day</span></div>
+          <button class="add-cart-btn${inCart ? ' in-cart' : ''}" id="btn-${eq.id}" onclick="toggleCart(${eq.id})">
+            ${inCart
+              ? `<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none"><polyline points="20 6 9 17 4 12"></polyline></svg> In Cart — Remove`
+              : `<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> Add to Cart`}
+          </button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+/* ── Category selection ── */
+function selectCat(btn) {
+  activeCat = btn.dataset.cat;
+  document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  renderGrid();
+}
+
+/* ── Search filter ── */
+function filterEquipment() { renderGrid(); }
+
+/* ── Cart toggle (add/remove) ── */
+function toggleCart(equipId) {
+  const eq = allEquipment.find(e => e.id === equipId);
+  if (!eq) return;
+  const idx = cart.findIndex(c => c.equipment.id === equipId);
+  if (idx >= 0) {
+    cart.splice(idx, 1);
+    showToast(`${eq.name} removed from cart`, 'error');
+  } else {
+    cart.push({ equipment: eq, quantity: 1 });
+    showToast(`${eq.name} added to cart!`, 'success');
+  }
+  updateCartUI();
+  renderGrid(); // re-render to reflect in-cart state
+}
+
+/* ── Quantity change ── */
+function changeQty(equipId, delta) {
+  const item = cart.find(c => c.equipment.id === equipId);
+  if (!item) return;
+  item.quantity = Math.max(1, item.quantity + delta);
+  updateCartUI();
+}
+
+/* ── Remove from cart ── */
+function removeFromCart(equipId) {
+  cart = cart.filter(c => c.equipment.id !== equipId);
+  updateCartUI();
+  renderGrid();
+}
+
+/* ── Update cart UI ── */
+function updateCartUI() {
+  const count = cart.reduce((s, c) => s + c.quantity, 0);
+  const total = cart.reduce((s, c) => s + c.equipment.rental_rate * c.quantity, 0);
+
+  // Nav badge
+  const badge = document.getElementById('cart-count');
+  if (count > 0) {
+    badge.textContent = count; badge.style.display = 'flex';
+  } else {
+    badge.style.display = 'none';
+  }
+
+  // Total
+  document.getElementById('cart-total').textContent = `₹${total.toLocaleString('en-IN')}`;
+
+  // Book now btn
+  document.getElementById('book-now-btn').disabled = cart.length === 0;
+
+  // Items list
+  const list = document.getElementById('cart-items-list');
+  const empty = document.getElementById('cart-empty');
+  if (cart.length === 0) {
+    empty.style.display = 'block';
+    // Remove all dynamically added cart items
+    list.querySelectorAll('.cart-item').forEach(el => el.remove());
+    return;
+  }
+  empty.style.display = 'none';
+  list.querySelectorAll('.cart-item').forEach(el => el.remove());
+  cart.forEach(({ equipment: eq, quantity }) => {
+    const div = document.createElement('div');
+    div.className = 'cart-item';
+    div.id = `ci-${eq.id}`;
+    div.innerHTML = `
+      <img src="${eq.image_url || ''}" alt="${eq.name}" class="cart-item-img"
+        onerror="this.src='';this.style.background='#181b24'">
+      <div class="cart-item-info">
+        <div class="cart-item-name" title="${eq.name}">${eq.name}</div>
+        <div class="cart-item-rate">₹${Number(eq.rental_rate).toLocaleString('en-IN')} / day</div>
+      </div>
+      <div class="cart-item-controls">
+        <button class="qty-btn" onclick="changeQty(${eq.id}, -1)" aria-label="Decrease">−</button>
+        <span class="qty-val">${quantity}</span>
+        <button class="qty-btn" onclick="changeQty(${eq.id}, +1)" aria-label="Increase">+</button>
+        <button class="remove-btn" onclick="removeFromCart(${eq.id})" aria-label="Remove">
+          <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6l-1 14H6L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path>
+            <path d="M9 6V4h6v2"></path>
+          </svg>
+        </button>
+      </div>`;
+    list.appendChild(div);
+  });
+}
+
+/* ── Cart open/close ── */
+function openCart() {
+  document.getElementById('cart-overlay').classList.add('open');
+  document.getElementById('cart-drawer').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeCart() {
+  document.getElementById('cart-overlay').classList.remove('open');
+  document.getElementById('cart-drawer').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+/* ── Booking modal open/close ── */
+function openBookingModal() {
+  closeCart();
+  // Set default dates
+  const today = new Date().toISOString().split('T')[0];
+  const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+  document.getElementById('f-rental-date').value = today;
+  document.getElementById('f-return-date').value = tomorrow;
+  updateDurationBadge();
+  populateModalOrder();
+  checkCustomerSession();
+  document.getElementById('booking-modal-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeBookingModal() {
+  document.getElementById('booking-modal-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+  document.getElementById('booking-error').classList.remove('visible');
+}
+
+/* ── Populate order summary in modal ── */
+function populateModalOrder() {
+  const total = cart.reduce((s, c) => s + c.equipment.rental_rate * c.quantity, 0);
+  document.getElementById('modal-total-display').textContent = `₹${total.toLocaleString('en-IN')}`;
+  document.getElementById('modal-order-items').innerHTML = cart.map(({ equipment: eq, quantity }) => `
+    <div class="order-item">
+      <span class="name">${quantity}× ${eq.name}</span>
+      <span class="price">₹${(eq.rental_rate * quantity).toLocaleString('en-IN')}/day</span>
+    </div>`).join('');
+}
+
+/* ── Duration badge update ── */
+function updateDurationBadge() {
+  const s = document.getElementById('f-rental-date').value;
+  const e = document.getElementById('f-return-date').value;
+  const badge = document.getElementById('duration-badge');
+  if (s && e) {
+    const days = Math.max(1, Math.ceil((new Date(e) - new Date(s)) / 86400000));
+    const total = cart.reduce((sum, c) => sum + c.equipment.rental_rate * c.quantity, 0) * days;
+    badge.textContent = `${days} day${days !== 1 ? 's' : ''} · Estimated Total: ₹${total.toLocaleString('en-IN')} (excl. GST)`;
+  } else {
+    badge.textContent = 'Select dates above';
+  }
+}
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('f-rental-date').addEventListener('change', updateDurationBadge);
+  document.getElementById('f-return-date').addEventListener('change', updateDurationBadge);
+});
+
+/* ── Submit booking ── */
+async function submitBooking(e) {
+  e.preventDefault();
+  const errEl = document.getElementById('booking-error');
+  errEl.classList.remove('visible');
+
+  const name = document.getElementById('f-name').value.trim();
+  const email = document.getElementById('f-email').value.trim();
+  const phone = document.getElementById('f-phone').value.trim();
+  const type = document.getElementById('f-type').value;
+  const rental_date = document.getElementById('f-rental-date').value;
+  const expected_return_date = document.getElementById('f-return-date').value;
+  const notes = document.getElementById('f-notes').value.trim();
+
+  if (!name || !email || !phone || !rental_date || !expected_return_date) {
+    errEl.textContent = 'Please fill in all required fields.';
+    errEl.classList.add('visible');
+    return;
+  }
+  if (new Date(expected_return_date) <= new Date(rental_date)) {
+    errEl.textContent = 'Return date must be after the pickup date.';
+    errEl.classList.add('visible');
+    return;
+  }
+  if (cart.length === 0) {
+    errEl.textContent = 'Your cart is empty. Please add equipment first.';
+    errEl.classList.add('visible');
+    return;
+  }
+
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.innerHTML = `<span style="display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;"></span> Submitting…`;
+
+  try {
+    const items = cart.map(c => ({ equipment_id: c.equipment.id, quantity: c.quantity }));
+    const res = await fetch('/api/portal/booking', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, phone, type, rental_date, expected_return_date, notes, items })
+    });
+    const data = await res.json();
+
+    if (!res.ok) throw new Error(data.error || 'Submission failed');
+
+    closeBookingModal();
+    showConfirmation(data, { name, email, rental_date, expected_return_date });
+  } catch (err) {
+    errEl.textContent = err.message || 'Something went wrong. Please try again.';
+    errEl.classList.add('visible');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none"><polyline points="20 6 9 17 4 12"></polyline></svg> Submit Inquiry`;
+  }
+}
+
+/* ── Show confirmation screen ── */
+function showConfirmation(data, formData) {
+  document.getElementById('confirm-ref').textContent = data.booking_ref;
+  document.getElementById('confirm-summary').innerHTML = `
+    <div class="cs-row"><span class="lbl">Name</span><span class="val">${formData.name}</span></div>
+    <div class="cs-row"><span class="lbl">Email</span><span class="val">${formData.email}</span></div>
+    <div class="cs-row"><span class="lbl">Pickup</span><span class="val">${formData.rental_date}</span></div>
+    <div class="cs-row"><span class="lbl">Return</span><span class="val">${formData.expected_return_date}</span></div>
+    <div class="cs-row"><span class="lbl">Duration</span><span class="val">${data.days} day${data.days !== 1 ? 's' : ''}</span></div>
+    <div class="cs-row"><span class="lbl">Est. Total</span><span class="val" style="color:var(--accent-primary)">₹${Number(data.cost_estimate).toLocaleString('en-IN')} <small style="color:var(--text-muted)">(+ 18% GST)</small></span></div>
+    <div class="cs-row"><span class="lbl">Items</span><span class="val">${cart.length} item${cart.length !== 1 ? 's' : ''}</span></div>`;
+  document.getElementById('confirmation-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  // Clear cart after successful booking
+  cart = [];
+  updateCartUI();
+}
+
+function closeConfirmation() {
+  document.getElementById('confirmation-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function resetPortal() {
+  closeConfirmation();
+  document.getElementById('search-input').value = '';
+  activeCat = 'All';
+  document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
+  document.querySelector('.cat-tab[data-cat="All"]').classList.add('active');
+  renderGrid();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ── Toast ── */
+let toastTimer;
+function showToast(msg, type = 'success') {
+  const toast = document.getElementById('toast');
+  const icon = document.getElementById('toast-icon');
+  document.getElementById('toast-msg').textContent = msg;
+  toast.className = `toast ${type}`;
+  icon.textContent = type === 'success' ? '✓' : '✕';
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 2800);
+}
+
+/* ── Spinner keyframe (injected) ── */
+const style = document.createElement('style');
+style.textContent = `@keyframes spin { to { transform: rotate(360deg); } }`;
+document.head.appendChild(style);
+
+/* ── Boot ── */
+loadEquipment();
+checkCustomerSession();
+
+/* ════════════════════════════════════
+   CUSTOMER PORTAL LOGIN & LOGOUT
+════════════════════════════════════ */
+function openCustomerLogin() {
+  document.getElementById('customer-login-overlay').classList.add('open');
+  document.getElementById('cust-login-email').focus();
+  document.getElementById('cust-login-error').classList.remove('visible');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeCustomerLogin() {
+  document.getElementById('customer-login-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+async function submitCustomerLogin() {
+  const email = document.getElementById('cust-login-email').value.trim();
+  const errEl = document.getElementById('cust-login-error');
+  const btn = document.getElementById('cust-login-btn');
+  errEl.classList.remove('visible');
+
+  if (!email || !email.includes('@')) {
+    errEl.textContent = 'Please enter a valid email address.';
+    errEl.classList.add('visible');
+    return;
+  }
+
+  btn.disabled = true;
+
+  try {
+    // Save customer email session
+    localStorage.setItem('customer_email', email);
+    
+    // Hydrate UI
+    checkCustomerSession();
+    closeCustomerLogin();
+    showToast('Logged in successfully!', 'success');
+
+    // Trigger search of historical bookings automatically
+    const trackInput = document.getElementById('track-input');
+    if (trackInput) {
+      trackInput.value = email;
+      trackBooking();
+    }
+  } catch (err) {
+    errEl.textContent = err.message || 'Login failed. Please try again.';
+    errEl.classList.add('visible');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function customerLogout() {
+  localStorage.removeItem('customer_email');
+  checkCustomerSession();
+  showToast('Logged out.', 'error');
+  
+  // Clear the tracked bookings list and search input
+  const trackInput = document.getElementById('track-input');
+  if (trackInput) trackInput.value = '';
+  const resultsEl = document.getElementById('track-results');
+  if (resultsEl) resultsEl.innerHTML = '';
+}
+
+function checkCustomerSession() {
+  const email = localStorage.getItem('customer_email');
+  const loginBtn = document.getElementById('customer-login-btn');
+  const userBadge = document.getElementById('customer-user-badge');
+  const emailDisplay = document.getElementById('customer-email-display');
+  const bookingEmailField = document.getElementById('f-email');
+
+  if (email) {
+    if (loginBtn) loginBtn.style.display = 'none';
+    if (userBadge) userBadge.style.display = 'flex';
+    if (emailDisplay) emailDisplay.textContent = email.length > 20 ? email.substring(0, 17) + '...' : email;
+    if (bookingEmailField) {
+      bookingEmailField.value = email;
+      bookingEmailField.disabled = true; // Auto-lock to their logged in email
+    }
+    
+    // Auto-fill track input and load history
+    const trackInput = document.getElementById('track-input');
+    if (trackInput && !trackInput.value) {
+      trackInput.value = email;
+      trackBooking();
+    }
+  } else {
+    if (loginBtn) loginBtn.style.display = 'flex';
+    if (userBadge) userBadge.style.display = 'none';
+    if (bookingEmailField) {
+      bookingEmailField.value = '';
+      bookingEmailField.disabled = false;
+    }
+  }
+}
+
+/* ════════════════════════════════════
+   TRACK MY BOOKING
+════════════════════════════════════ */
+const STATUS_COLORS = {
+  'Inquiry':       { bg:'rgba(59,130,246,0.15)', color:'#93c5fd', text:'⏳ Inquiry Received' },
+  'Quote Sent':    { bg:'rgba(245,158,11,0.15)',  color:'#fcd34d', text:'📄 Quote Sent' },
+  'Booked':        { bg:'rgba(99,102,241,0.15)',  color:'#a5b4fc', text:'✅ Confirmed & Booked' },
+  'Out for Rental':{ bg:'rgba(167,139,250,0.15)',color:'#c4b5fd', text:'🚚 Out for Rental' },
+  'Returned':      { bg:'rgba(16,185,129,0.15)',  color:'#6ee7b7', text:'✓ Returned' },
+  'Overdue':       { bg:'rgba(239,68,68,0.15)',   color:'#fca5a5', text:'⚠️ Overdue' },
+  'Cancelled':     { bg:'rgba(107,114,128,0.15)', color:'#9ca3af', text:'✕ Cancelled' },
+};
+
+async function trackBooking() {
+  const val = document.getElementById('track-input').value.trim();
+  const resultsEl = document.getElementById('track-results');
+  if (!val) return;
+
+  const btn = document.getElementById('track-btn');
+  btn.disabled = true;
+  btn.style.opacity = '0.6';
+  resultsEl.innerHTML = `<div style="color:var(--text-muted);font-size:0.82rem;padding:8px 0;">Searching…</div>`;
+
+  try {
+    // Determine if it's an email or a booking ref
+    const isEmail = val.includes('@');
+
+    if (isEmail) {
+      const res = await fetch(`/api/portal/my-bookings?email=${encodeURIComponent(val)}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Not found');
+
+      if (data.length === 0) {
+        resultsEl.innerHTML = `<div style="color:var(--accent-danger);font-size:0.82rem;padding:8px 0;">No bookings found for this email address.</div>`;
+        return;
+      }
+
+      resultsEl.innerHTML = data.map(b => {
+        const sc = STATUS_COLORS[b.status] || STATUS_COLORS['Inquiry'];
+        return `
+          <div onclick="showTrackModal('${b.booking_ref}')"
+            style="display:flex;justify-content:space-between;align-items:center;background:var(--bg-sidebar);border:1px solid var(--border-color);border-radius:8px;padding:10px 14px;margin-bottom:8px;cursor:pointer;transition:border-color 0.2s;"
+            onmouseover="this.style.borderColor='var(--accent-primary)'" onmouseout="this.style.borderColor='var(--border-color)'">
+            <div>
+              <div style="font-weight:600;font-size:0.875rem;">${b.booking_ref}</div>
+              <div style="color:var(--text-muted);font-size:0.75rem;margin-top:2px;">${b.rental_date} → ${b.expected_return_date}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="background:${sc.bg};color:${sc.color};border-radius:6px;padding:3px 10px;font-size:0.72rem;font-weight:700;">${sc.text}</span>
+              <svg viewBox="0 0 24 24" width="14" height="14" stroke="var(--text-muted)" stroke-width="2" fill="none"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </div>
+          </div>`;
+      }).join('');
+
+    } else {
+      // Single booking ref lookup
+      showTrackModal(val);
+      resultsEl.innerHTML = '';
+    }
+  } catch (err) {
+    resultsEl.innerHTML = `<div style="color:var(--accent-danger);font-size:0.82rem;padding:8px 0;">${err.message}</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.style.opacity = '1';
+  }
+}
+
+async function showTrackModal(ref) {
+  const overlay = document.getElementById('track-modal-overlay');
+  const modal = document.getElementById('track-modal');
+  const body = document.getElementById('track-modal-body');
+  const refEl = document.getElementById('tm-ref');
+  const badgeEl = document.getElementById('tm-status-badge');
+
+  body.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:30px 0;">Loading booking details…</div>`;
+  overlay.style.opacity = '1'; overlay.style.pointerEvents = 'all';
+  modal.style.transform = 'scale(1) translateY(0)';
+  document.body.style.overflow = 'hidden';
+
+  try {
+    const res = await fetch(`/api/portal/track/${encodeURIComponent(ref)}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Booking not found');
+
+    refEl.textContent = `Booking ${data.booking_ref}`;
+
+    const sc = STATUS_COLORS[data.status] || STATUS_COLORS['Inquiry'];
+    badgeEl.style.background = sc.bg;
+    badgeEl.style.color = sc.color;
+    badgeEl.textContent = sc.text;
+
+    const days = Math.max(1, Math.ceil((new Date(data.expected_return_date) - new Date(data.rental_date)) / 86400000));
+
+    const timelineSteps = [
+      { label: 'Inquiry Received',  done: true },
+      { label: 'Confirmed by Team', done: ['Booked','Out for Rental','Returned'].includes(data.status) },
+      { label: 'Out for Rental',    done: ['Out for Rental','Returned'].includes(data.status) },
+      { label: 'Returned',          done: data.status === 'Returned' },
+    ];
+
+    body.innerHTML = `
+      <!-- Timeline -->
+      <div style="display:flex;gap:0;margin-bottom:24px;position:relative;">
+        ${timelineSteps.map((s,i) => `
+          <div style="flex:1;text-align:center;position:relative;">
+            ${i > 0 ? `<div style="position:absolute;top:13px;left:-50%;right:50%;height:2px;background:${s.done ? 'var(--accent-primary)' : 'var(--border-color)'};z-index:0;"></div>` : ''}
+            <div style="width:26px;height:26px;border-radius:50%;background:${s.done ? 'var(--accent-primary)' : 'var(--bg-sidebar)'};border:2px solid ${s.done ? 'var(--accent-primary)' : 'var(--border-color)'};margin:0 auto 6px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:#fff;position:relative;z-index:1;">
+              ${s.done ? '✓' : ''}
+            </div>
+            <div style="font-size:0.68rem;color:${s.done ? 'var(--text-secondary)' : 'var(--text-muted)'};line-height:1.3;">${s.label}</div>
+          </div>`).join('')}
+      </div>
+
+      <!-- Details Grid -->
+      <div style="background:var(--bg-sidebar);border:1px solid var(--border-color);border-radius:10px;padding:16px;margin-bottom:16px;">
+        <div style="font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:10px;">Rental Details</div>
+        ${[
+          ['Customer', data.customer_name],
+          ['Pickup Date', data.rental_date],
+          ['Return By', data.expected_return_date],
+          ['Duration', `${days} day${days!==1?'s':''}`],
+          ['Delivery', data.delivery_status],
+          data.actual_return_date ? ['Returned On', data.actual_return_date] : null,
+        ].filter(Boolean).map(([l,v]) => `
+          <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border-color);font-size:0.82rem;">
+            <span style="color:var(--text-muted);">${l}</span>
+            <span style="font-weight:500;">${v}</span>
+          </div>`).join('')}
+      </div>
+
+      <!-- Items -->
+      <div style="background:var(--bg-sidebar);border:1px solid var(--border-color);border-radius:10px;padding:16px;margin-bottom:16px;">
+        <div style="font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:10px;">Gear Package</div>
+        ${data.items.map(it => `
+          <div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border-color);">
+            <img src="${it.image_url||''}" style="width:36px;height:36px;border-radius:6px;object-fit:cover;background:#0f1118;flex-shrink:0;" onerror="this.style.display='none'">
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:0.82rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${it.quantity}× ${it.equipment_name}</div>
+              <div style="font-size:0.72rem;color:var(--text-muted);">${it.category} · ₹${Number(it.rental_rate).toLocaleString('en-IN')}/day</div>
+            </div>
+          </div>`).join('')}
+      </div>
+
+      <!-- Invoice -->
+      ${data.invoice ? `
+        <div style="background:var(--bg-sidebar);border:1px solid var(--border-color);border-radius:10px;padding:16px;">
+          <div style="font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:10px;">Invoice</div>
+          <div style="display:flex;justify-content:space-between;font-size:0.82rem;padding:3px 0;"><span style="color:var(--text-muted);">Base Amount</span><span>₹${Number(data.cost_estimate).toLocaleString('en-IN')}</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:0.82rem;padding:3px 0;"><span style="color:var(--text-muted);">GST (18%)</span><span>₹${Number(data.invoice.tax).toLocaleString('en-IN')}</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:0.9rem;font-weight:700;padding:8px 0 0;border-top:1px solid var(--border-color);margin-top:6px;">
+            <span>Total</span>
+            <span style="color:var(--accent-primary);">₹${Number(data.invoice.amount).toLocaleString('en-IN')}</span>
+          </div>
+          <div style="margin-top:8px;font-size:0.75rem;">Invoice Status: <span style="font-weight:600;color:${data.invoice.status==='Paid'?'var(--accent-success)':data.invoice.status==='Sent'?'var(--accent-warning)':'var(--text-muted)'};">${data.invoice.status}</span></div>
+        </div>` : ''}
+
+      <button onclick="closeTrackModal()" style="width:100%;margin-top:16px;background:var(--bg-sidebar);border:1px solid var(--border-color);color:var(--text-secondary);border-radius:8px;padding:10px;font-size:0.875rem;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--accent-primary)'" onmouseout="this.style.borderColor='var(--border-color)'">Close</button>
+    `;
+  } catch (err) {
+    body.innerHTML = `<div style="text-align:center;color:var(--accent-danger);padding:30px 0;font-size:0.875rem;">${err.message}</div>
+      <button onclick="closeTrackModal()" style="width:100%;background:var(--bg-sidebar);border:1px solid var(--border-color);color:var(--text-secondary);border-radius:8px;padding:10px;cursor:pointer;">Close</button>`;
+    refEl.textContent = 'Booking Not Found';
+    badgeEl.textContent = ''; badgeEl.style.background = 'transparent';
+  }
+}
+
+function closeTrackModal() {
+  const overlay = document.getElementById('track-modal-overlay');
+  const modal = document.getElementById('track-modal');
+  overlay.style.opacity = '0'; overlay.style.pointerEvents = 'none';
+  modal.style.transform = 'scale(0.92) translateY(20px)';
+  document.body.style.overflow = '';
+}
+</script>
+</body>
+</html>

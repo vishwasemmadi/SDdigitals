@@ -1,7 +1,16 @@
+require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const nodemailer = require('nodemailer');
 const { dbQuery, dbInitialized } = require('./db');
+const multer = require('multer');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const { authenticate, authorize, JWT_SECRET } = require('./middleware/auth');
+const { auditLog } = require('./middleware/audit');
+const { setupCronJobs } = require('./utils/cronJobs');
+const { sendWhatsAppMessage } = require('./services/whatsapp');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -9,11 +18,45 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
+
+// Configure Multer for file uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, path.join(__dirname, 'public/uploads'));
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + '-' + file.originalname);
+  }
+});
+const upload = multer({ storage });
 
 // Helper to wrap async routes
 const asyncHandler = (fn) => (req, res, next) => {
   Promise.resolve(fn(req, res, next)).catch(next);
 };
+
+// Configure Gmail transporter (only if credentials are set in .env)
+const gmailUser = process.env.GMAIL_USER;
+const gmailPass = process.env.GMAIL_APP_PASSWORD;
+const emailConfigured = gmailUser && gmailPass 
+  && gmailUser !== 'your_gmail@gmail.com' 
+  && gmailPass !== 'your_16_char_app_password';
+
+let transporter = null;
+if (emailConfigured) {
+  transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: gmailUser,
+      pass: gmailPass
+    }
+  });
+  console.log(`Email service configured: sending as ${gmailUser}`);
+} else {
+  console.log('Email service: running in simulation mode (no Gmail credentials in .env)');
+}
 
 // Send automated booking confirmation email
 async function sendBookingConfirmationEmail(rentalId) {
@@ -34,45 +77,454 @@ async function sendBookingConfirmationEmail(rentalId) {
       WHERE ri.rental_id = ?
     `, [rentalId]);
 
-    const itemsList = items.map(i => `${i.quantity}x ${i.equipment_name}`).join('\n');
+    const ref = String(rental.id).padStart(4, '0');
+    const itemsList = items.map(i => `• ${i.quantity}x ${i.equipment_name}`).join('<br>');
+    const itemsListText = items.map(i => `  - ${i.quantity}x ${i.equipment_name}`).join('\n');
 
-    const subject = `Booking Confirmation: Rental #${String(rental.id).padStart(4, '0')}`;
-    const emailMessage = `Subject: ${subject}
-To: ${rental.customer_email}
+    const subject = `Booking Confirmation: Rental #${ref}`;
+    const htmlBody = `
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f9fafb; border-radius: 12px; overflow: hidden;">
+  <div style="background: linear-gradient(135deg, #6366f1, #4f46e5); padding: 32px; text-align: center;">
+    <h1 style="color: white; margin: 0; font-size: 22px;">SD Digitals</h1>
+    <p style="color: rgba(255,255,255,0.8); margin: 6px 0 0;">Equipment Rental Confirmation</p>
+  </div>
+  <div style="padding: 32px; background: white;">
+    <h2 style="color: #1f2937; margin-top: 0;">Booking Confirmed ✅</h2>
+    <p style="color: #374151;">Dear <strong>${rental.customer_name}</strong>,</p>
+    <p style="color: #374151;">Your equipment rental booking at SD Digitals is officially confirmed!</p>
+    <div style="background: #f3f4f6; border-radius: 8px; padding: 20px; margin: 20px 0;">
+      <h3 style="color: #374151; margin-top: 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Booking Summary</h3>
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr><td style="color: #6b7280; padding: 4px 0;">Booking Ref</td><td style="color: #1f2937; font-weight: 600;">#${ref}</td></tr>
+        <tr><td style="color: #6b7280; padding: 4px 0;">Pickup Date</td><td style="color: #1f2937; font-weight: 600;">${rental.rental_date}</td></tr>
+        <tr><td style="color: #6b7280; padding: 4px 0;">Return By</td><td style="color: #1f2937; font-weight: 600;">${rental.expected_return_date}</td></tr>
+        <tr><td style="color: #6b7280; padding: 4px 0;">Estimated Total</td><td style="color: #1f2937; font-weight: 600;">INR ${rental.cost_estimate}</td></tr>
+      </table>
+    </div>
+    <div style="background: #f3f4f6; border-radius: 8px; padding: 20px; margin: 20px 0;">
+      <h3 style="color: #374151; margin-top: 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Gear Package</h3>
+      <p style="color: #374151; margin: 0;">${itemsList}</p>
+    </div>
+    <p style="color: #374151;">Thank you for choosing SD Digitals. Please contact our operations desk for delivery coordination or additional accessories.</p>
+  </div>
+  <div style="background: #f3f4f6; padding: 20px; text-align: center;">
+    <p style="color: #6b7280; font-size: 12px; margin: 0;">SD Digitals Operations Team | Camera &amp; Equipment Rentals</p>
+  </div>
+</div>`;
 
-Dear ${rental.customer_name},
+    const plainText = `Dear ${rental.customer_name},\n\nYour equipment rental booking at SD Digitals is officially confirmed!\n\nBooking Summary:\n- Booking Ref: #${ref}\n- Pickup: ${rental.rental_date}\n- Return By: ${rental.expected_return_date}\n- Total: INR ${rental.cost_estimate}\n\nGear Package:\n${itemsListText}\n\nBest regards,\nSD Digitals Operations Team`;
 
-Your equipment rental booking at SD Digitals is officially confirmed!
-
-Booking Summary:
-- Booking Reference: #${String(rental.id).padStart(4, '0')}
-- Pickup Date: ${rental.rental_date}
-- Expected Return: ${rental.expected_return_date}
-- Estimated Total: INR ${rental.cost_estimate}
-
-Gear Package:
-${itemsList}
-
-Thank you for choosing SD Digitals. If you need any delivery coordination or additional accessories, please contact our operations desk.
-
-Best regards,
-SD Digitals Operations Team`;
+    const logMessage = `Subject: ${subject}\nTo: ${rental.customer_email}\n\n${plainText}`;
 
     await dbQuery.run(`
       INSERT INTO communication_logs (customer_id, type, direction, message, status, notes)
       VALUES (?, 'Email', 'Outbound', ?, 'Completed', ?)
-    `, [rental.customer_id, emailMessage, `Automated booking confirmation for Rental #${rentalId}`]);
+    `, [rental.customer_id, logMessage, `Automated booking confirmation for Rental #${rentalId}`]);
 
-    console.log(`Automated booking confirmation email logged for Rental #${rentalId} to ${rental.customer_email}`);
+    if (transporter) {
+      await transporter.sendMail({
+        from: `"${process.env.SENDER_NAME || 'SD Digitals Operations'}" <${gmailUser}>`,
+        to: rental.customer_email,
+        subject: subject,
+        text: plainText,
+        html: htmlBody
+      });
+      console.log(`✉️  Booking confirmation email SENT to ${rental.customer_email} (Rental #${rentalId})`);
+    } else {
+      console.log(`Automated booking confirmation email logged for Rental #${rentalId} to ${rental.customer_email} [simulation mode]`);
+    }
   } catch (err) {
-    console.error('Error logging booking confirmation email:', err);
+    console.error('Error sending booking confirmation email:', err);
+  }
+}
+
+// Send automated status update email based on state transition
+async function sendStatusUpdateEmail(rentalId, status) {
+  try {
+    const rental = await dbQuery.get(`
+      SELECT r.*, c.name AS customer_name, c.email AS customer_email
+      FROM equipment_rentals r
+      JOIN customers c ON r.customer_id = c.id
+      WHERE r.id = ?
+    `, [rentalId]);
+
+    if (!rental) return null;
+
+    const items = await dbQuery.all(`
+      SELECT ri.quantity, e.name AS equipment_name
+      FROM rental_items ri
+      JOIN equipment e ON ri.equipment_id = e.id
+      WHERE ri.rental_id = ?
+    `, [rentalId]);
+
+    const itemsList = items.map(i => `${i.quantity}x ${i.equipment_name}`).join('\n');
+    const ref = String(rental.id).padStart(4, '0');
+
+    let subject = `Rental Status Update: Rental #${ref}`;
+    let bodyIntro = `We are writing to inform you that your equipment rental status has been updated to: ${status}.`;
+
+    if (status === 'Inquiry') {
+      subject = `Rental Inquiry Received: Rental #${ref}`;
+      bodyIntro = `Thank you for your inquiry regarding equipment rentals at SD Digitals. We have received your request and are checking gear availability.`;
+    } else if (status === 'Quote Sent') {
+      subject = `Equipment Rental Quote: Rental #${ref}`;
+      bodyIntro = `Here is the quote for your requested equipment rental at SD Digitals. Please confirm your booking to reserve the gear.`;
+    } else if (status === 'Booked') {
+      subject = `Booking Confirmation: Rental #${ref}`;
+      bodyIntro = `Your equipment rental booking at SD Digitals is officially confirmed!`;
+    } else if (status === 'Out for Rental') {
+      subject = `Gear Dispatched / Out for Rental: Rental #${ref}`;
+      bodyIntro = `Your equipment rental package has been checked out and is now out for rental.`;
+    } else if (status === 'Returned') {
+      subject = `Gear Safely Returned: Rental #${ref}`;
+      bodyIntro = `Thank you for returning the equipment. All items have been inspected and checked back into our inventory.`;
+    } else if (status === 'Overdue') {
+      subject = `URGENT - Overdue Equipment Rental: Rental #${ref}`;
+      bodyIntro = `This is an urgent reminder that your equipment rental package is overdue. Please return the gear immediately to prevent additional late fee charges.`;
+    } else if (status === 'Cancelled') {
+      subject = `Rental Booking Cancelled: Rental #${ref}`;
+      bodyIntro = `We confirm that your equipment rental booking has been cancelled.`;
+    }
+
+    const statusColor = {
+      'Booked': '#6366f1', 'Out for Rental': '#a78bfa', 'Overdue': '#ef4444',
+      'Returned': '#10b981', 'Cancelled': '#6b7280', 'Quote Sent': '#f59e0b', 'Inquiry': '#3b82f6'
+    }[status] || '#6366f1';
+
+    const itemsListHtml = items.map(i => `• ${i.quantity}x ${i.equipment_name}`).join('<br>');
+    const itemsListText = items.map(i => `  - ${i.quantity}x ${i.equipment_name}`).join('\n');
+
+    const htmlBody = `
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f9fafb; border-radius: 12px; overflow: hidden;">
+  <div style="background: linear-gradient(135deg, ${statusColor}, #4f46e5); padding: 32px; text-align: center;">
+    <h1 style="color: white; margin: 0; font-size: 22px;">SD Digitals</h1>
+    <p style="color: rgba(255,255,255,0.8); margin: 6px 0 0;">Rental Status Update</p>
+  </div>
+  <div style="padding: 32px; background: white;">
+    <div style="display: inline-block; background: ${statusColor}22; color: ${statusColor}; border: 1px solid ${statusColor}44; border-radius: 6px; padding: 4px 14px; font-size: 13px; font-weight: 700; margin-bottom: 20px;">${status}</div>
+    <p style="color: #374151;">Dear <strong>${rental.customer_name}</strong>,</p>
+    <p style="color: #374151;">${bodyIntro}</p>
+    <div style="background: #f3f4f6; border-radius: 8px; padding: 20px; margin: 20px 0;">
+      <h3 style="color: #374151; margin-top: 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Booking Summary</h3>
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr><td style="color: #6b7280; padding: 4px 0;">Booking Ref</td><td style="color: #1f2937; font-weight: 600;">#${ref}</td></tr>
+        <tr><td style="color: #6b7280; padding: 4px 0;">Pickup Date</td><td style="color: #1f2937; font-weight: 600;">${rental.rental_date}</td></tr>
+        <tr><td style="color: #6b7280; padding: 4px 0;">Return By</td><td style="color: #1f2937; font-weight: 600;">${rental.expected_return_date}</td></tr>
+        <tr><td style="color: #6b7280; padding: 4px 0;">Estimated Total</td><td style="color: #1f2937; font-weight: 600;">INR ${rental.cost_estimate}</td></tr>
+      </table>
+    </div>
+    <div style="background: #f3f4f6; border-radius: 8px; padding: 20px; margin: 20px 0;">
+      <h3 style="color: #374151; margin-top: 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Gear Package</h3>
+      <p style="color: #374151; margin: 0;">${itemsListHtml}</p>
+    </div>
+    <p style="color: #374151;">For queries, contact SD Digitals operations team.</p>
+  </div>
+  <div style="background: #f3f4f6; padding: 20px; text-align: center;">
+    <p style="color: #6b7280; font-size: 12px; margin: 0;">SD Digitals Operations Team | Camera &amp; Equipment Rentals</p>
+  </div>
+</div>`;
+
+    const plainText = `Dear ${rental.customer_name},\n\n${bodyIntro}\n\nBooking Summary:\n- Booking Ref: #${ref}\n- Pickup: ${rental.rental_date}\n- Return By: ${rental.expected_return_date}\n- Total: INR ${rental.cost_estimate}\n\nGear Package:\n${itemsListText}\n\nBest regards,\nSD Digitals Operations Team`;
+    const logMessage = `Subject: ${subject}\nTo: ${rental.customer_email}\n\n${plainText}`;
+
+    await dbQuery.run(`
+      INSERT INTO communication_logs (customer_id, type, direction, message, status, notes)
+      VALUES (?, 'Email', 'Outbound', ?, 'Completed', ?)
+    `, [rental.customer_id, logMessage, `Automated ${status} notification for Rental #${rentalId}`]);
+
+    if (transporter) {
+      await transporter.sendMail({
+        from: `"${process.env.SENDER_NAME || 'SD Digitals Operations'}" <${gmailUser}>`,
+        to: rental.customer_email,
+        subject: subject,
+        text: plainText,
+        html: htmlBody
+      });
+      console.log(`✉️  Status update email SENT to ${rental.customer_email} (${status} — Rental #${rentalId})`);
+    } else {
+      console.log(`Automated ${status} email logged for Rental #${rentalId} to ${rental.customer_email} [simulation mode]`);
+    }
+
+    return {
+      customer_id: rental.customer_id,
+      email: rental.customer_email,
+      subject: subject,
+      message: logMessage,
+      api_response: transporter
+        ? `200 OK - Email dispatched via Gmail to ${rental.customer_email}`
+        : `SIMULATED - Logged to communication_logs (configure .env to send real emails)`
+    };
+  } catch (err) {
+    console.error('Error sending status update email:', err);
+    return null;
   }
 }
 
 // -------------------------------------------------------------
+// PUBLIC PORTAL API (no authentication required)
+// -------------------------------------------------------------
+
+// Browse available equipment — public
+app.get('/api/portal/equipment', asyncHandler(async (req, res) => {
+  const equipment = await dbQuery.all(`
+    SELECT id, name, category, company, serial_number, rental_rate, status, image_url
+    FROM equipment
+    WHERE status = 'Available'
+    ORDER BY category ASC, name ASC
+  `);
+  res.json(equipment);
+}));
+
+// Submit a booking inquiry — public
+app.post('/api/portal/booking', asyncHandler(async (req, res) => {
+  const { name, email, phone, type, rental_date, expected_return_date, notes, items } = req.body;
+
+  if (!name || !email || !phone || !rental_date || !expected_return_date || !items || items.length === 0) {
+    return res.status(400).json({ error: 'name, email, phone, rental_date, expected_return_date, and items are required' });
+  }
+
+  // Find or create customer by email
+  let customer = await dbQuery.get('SELECT id FROM customers WHERE email = ?', [email]);
+  if (!customer) {
+    const result = await dbQuery.run(
+      'INSERT INTO customers (name, email, phone, type, status, notes) VALUES (?, ?, ?, ?, ?, ?)',
+      [name, email, phone, type || 'General', 'Active', notes || 'Self-registered via customer portal']
+    );
+    customer = { id: result.id };
+  }
+
+  // Calculate rental duration and cost
+  const start = new Date(rental_date);
+  const end = new Date(expected_return_date);
+  const diffDays = Math.max(1, Math.ceil(Math.abs(end - start) / (1000 * 60 * 60 * 24)));
+
+  let costEstimate = 0;
+  const equipDetails = [];
+  for (const item of items) {
+    const equip = await dbQuery.get('SELECT id, name, rental_rate FROM equipment WHERE id = ? AND status = ?', [item.equipment_id, 'Available']);
+    if (equip) {
+      costEstimate += equip.rental_rate * (item.quantity || 1) * diffDays;
+      equipDetails.push({ ...equip, quantity: item.quantity || 1 });
+    }
+  }
+
+  // Create rental record as Inquiry
+  const rentalResult = await dbQuery.run(`
+    INSERT INTO equipment_rentals (customer_id, rental_date, expected_return_date, status, cost_estimate, delivery_status)
+    VALUES (?, ?, ?, 'Inquiry', ?, 'Pending')
+  `, [customer.id, rental_date, expected_return_date, costEstimate]);
+
+  const rentalId = rentalResult.id;
+
+  // Insert rental items
+  for (const item of equipDetails) {
+    await dbQuery.run(
+      'INSERT INTO rental_items (rental_id, equipment_id, quantity, rental_rate) VALUES (?, ?, ?, ?)',
+      [rentalId, item.id, item.quantity, item.rental_rate]
+    );
+  }
+
+  // Create draft invoice
+  const tax = costEstimate * 0.18;
+  await dbQuery.run(
+    'INSERT INTO invoices (rental_id, amount, tax, discount, status, due_date) VALUES (?, ?, ?, 0, ?, ?)',
+    [rentalId, costEstimate + tax, tax, 'Draft', expected_return_date]
+  );
+
+  // Log in communication logs
+  const itemSummary = equipDetails.map(e => `${e.quantity}x ${e.name}`).join(', ');
+  await dbQuery.run(`
+    INSERT INTO communication_logs (customer_id, type, direction, message, status, notes)
+    VALUES (?, 'Portal', 'Inbound', ?, 'Completed', ?)
+  `, [customer.id,
+    `New booking inquiry submitted via Customer Portal by ${name} (${email}). Equipment: ${itemSummary}. Dates: ${rental_date} to ${expected_return_date}.`,
+    `Portal self-service booking — Rental #${String(rentalId).padStart(4, '0')}`
+  ]);
+
+  const ref = `SD-${String(rentalId).padStart(4, '0')}`;
+  res.status(201).json({
+    success: true,
+    booking_ref: ref,
+    rental_id: rentalId,
+    cost_estimate: costEstimate,
+    days: diffDays,
+    message: 'Your booking inquiry has been received. Our team will confirm availability and contact you shortly.'
+  });
+}));
+
+// Track booking by reference — public (e.g. SD-0006 or just 6)
+app.get('/api/portal/track/:ref', asyncHandler(async (req, res) => {
+  const raw = req.params.ref.toString().replace(/^SD-0*/i, '').replace(/^0+/, '') || '0';
+  const rentalId = parseInt(raw, 10);
+
+  const rental = await dbQuery.get(`
+    SELECT r.*, c.name AS customer_name, c.email AS customer_email, c.phone AS customer_phone
+    FROM equipment_rentals r
+    JOIN customers c ON r.customer_id = c.id
+    WHERE r.id = ?
+  `, [rentalId]);
+
+  if (!rental) return res.status(404).json({ error: 'Booking not found. Please check your reference number.' });
+
+  const items = await dbQuery.all(`
+    SELECT ri.quantity, e.name AS equipment_name, e.category, e.image_url, ri.rental_rate
+    FROM rental_items ri
+    JOIN equipment e ON ri.equipment_id = e.id
+    WHERE ri.rental_id = ?
+  `, [rentalId]);
+
+  const invoice = await dbQuery.get('SELECT * FROM invoices WHERE rental_id = ?', [rentalId]);
+
+  res.json({
+    booking_ref: `SD-${String(rental.id).padStart(4, '0')}`,
+    status: rental.status,
+    rental_date: rental.rental_date,
+    expected_return_date: rental.expected_return_date,
+    actual_return_date: rental.actual_return_date,
+    delivery_status: rental.delivery_status,
+    cost_estimate: rental.cost_estimate,
+    customer_name: rental.customer_name,
+    customer_email: rental.customer_email,
+    items,
+    invoice: invoice ? {
+      amount: invoice.amount,
+      tax: invoice.tax,
+      discount: invoice.discount,
+      status: invoice.status,
+      due_date: invoice.due_date
+    } : null
+  });
+}));
+
+// Track all bookings by email — public
+app.get('/api/portal/my-bookings', asyncHandler(async (req, res) => {
+  const { email } = req.query;
+  if (!email) return res.status(400).json({ error: 'email query parameter is required' });
+
+  const customer = await dbQuery.get('SELECT id FROM customers WHERE email = ?', [email.trim()]);
+  if (!customer) return res.json([]);
+
+  const rentals = await dbQuery.all(`
+    SELECT r.id, r.status, r.rental_date, r.expected_return_date, r.cost_estimate, r.delivery_status,
+           i.status AS invoice_status
+    FROM equipment_rentals r
+    LEFT JOIN invoices i ON i.rental_id = r.id
+    WHERE r.customer_id = ?
+    ORDER BY r.created_at DESC
+  `, [customer.id]);
+
+  const result = rentals.map(r => ({
+    ...r,
+    booking_ref: `SD-${String(r.id).padStart(4, '0')}`
+  }));
+
+  res.json(result);
+}));
+
+// Owner: Confirm or Reject a booking inquiry
+app.post('/api/portal/booking/:id/decision', authenticate, asyncHandler(async (req, res) => {
+  const rentalId = req.params.id;
+  const { action, notes } = req.body; // action: 'confirm' or 'reject'
+
+  if (!['confirm', 'reject'].includes(action)) {
+    return res.status(400).json({ error: "action must be 'confirm' or 'reject'" });
+  }
+
+  const rental = await dbQuery.get('SELECT * FROM equipment_rentals WHERE id = ?', [rentalId]);
+  if (!rental) return res.status(404).json({ error: 'Rental not found' });
+
+  const newStatus = action === 'confirm' ? 'Booked' : 'Cancelled';
+
+  await dbQuery.run(
+    'UPDATE equipment_rentals SET status = ? WHERE id = ?',
+    [newStatus, rentalId]
+  );
+
+  // If confirmed, mark equipment as Rented
+  if (action === 'confirm') {
+    const items = await dbQuery.all('SELECT equipment_id FROM rental_items WHERE rental_id = ?', [rentalId]);
+    for (const item of items) {
+      await dbQuery.run('UPDATE equipment SET status = "Rented" WHERE id = ?', [item.equipment_id]);
+    }
+    await dbQuery.run(
+      'UPDATE invoices SET status = "Sent" WHERE rental_id = ?',
+      [rentalId]
+    );
+  } else {
+    // If rejected, free up equipment
+    const items = await dbQuery.all('SELECT equipment_id FROM rental_items WHERE rental_id = ?', [rentalId]);
+    for (const item of items) {
+      await dbQuery.run('UPDATE equipment SET status = "Available" WHERE id = ?', [item.equipment_id]);
+    }
+    await dbQuery.run(
+      'UPDATE invoices SET status = "Draft" WHERE rental_id = ?',
+      [rentalId]
+    );
+  }
+
+  // Log the decision
+  await dbQuery.run(`
+    INSERT INTO communication_logs (customer_id, type, direction, message, status, notes)
+    VALUES (?, 'Portal', 'Outbound', ?, 'Completed', ?)
+  `, [rental.customer_id,
+    `Booking ${newStatus} by ${req.user.username} for Rental #${String(rentalId).padStart(4, '0')}. ${notes || ''}`.trim(),
+    `Owner ${action}ed booking via Booking Requests page`
+  ]);
+
+  res.json({ success: true, rental_id: rentalId, new_status: newStatus, action });
+}));
+
+// Owner: Get all pending booking inquiries
+app.get('/api/portal/inquiries', authenticate, asyncHandler(async (req, res) => {
+  const { status } = req.query;
+  const filterStatus = status || 'Inquiry';
+
+  const rentals = await dbQuery.all(`
+    SELECT r.*, c.name AS customer_name, c.email AS customer_email, c.phone AS customer_phone, c.type AS customer_type,
+           i.amount AS invoice_amount, i.status AS invoice_status
+    FROM equipment_rentals r
+    JOIN customers c ON r.customer_id = c.id
+    LEFT JOIN invoices i ON i.rental_id = r.id
+    WHERE r.status = ?
+    ORDER BY r.created_at DESC
+  `, [filterStatus]);
+
+  for (const r of rentals) {
+    r.items = await dbQuery.all(`
+      SELECT ri.quantity, ri.rental_rate, e.name AS equipment_name, e.category, e.image_url
+      FROM rental_items ri JOIN equipment e ON ri.equipment_id = e.id
+      WHERE ri.rental_id = ?
+    `, [r.id]);
+    r.booking_ref = `SD-${String(r.id).padStart(4, '0')}`;
+  }
+
+  res.json(rentals);
+}));
+
+// -------------------------------------------------------------
+// 0. Auth API
+// -------------------------------------------------------------
+app.post('/api/auth/login', asyncHandler(async (req, res) => {
+  const { username, password } = req.body;
+  if (!username || !password) return res.status(400).json({ error: 'Username and password required' });
+
+  const user = await dbQuery.get('SELECT * FROM users WHERE username = ?', [username]);
+  if (!user || !(await bcrypt.compare(password, user.password))) {
+    return res.status(401).json({ error: 'Invalid credentials' });
+  }
+
+  const token = jwt.sign({ id: user.id, username: user.username, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
+  res.json({ token, user: { id: user.id, username: user.username, role: user.role } });
+}));
+
+app.get('/api/auth/me', authenticate, (req, res) => {
+  res.json({ user: req.user });
+});
+
+// -------------------------------------------------------------
 // 1. Dashboard Statistics
 // -------------------------------------------------------------
-app.get('/api/dashboard/stats', asyncHandler(async (req, res) => {
+app.get('/api/dashboard/stats', authenticate, auditLog, asyncHandler(async (req, res) => {
   // Count active rentals (Booked, Out for Rental, Overdue)
   const activeRentals = await dbQuery.get(`
     SELECT COUNT(*) AS count FROM equipment_rentals 
@@ -421,7 +873,7 @@ app.post('/api/rentals', asyncHandler(async (req, res) => {
 
 app.put('/api/rentals/:id/status', asyncHandler(async (req, res) => {
   const rentalId = req.params.id;
-  const { status, delivery_status } = req.body;
+  const { status, delivery_status, send_email } = req.body;
 
   if (!status) {
     return res.status(400).json({ error: 'Status is required' });
@@ -476,11 +928,14 @@ app.put('/api/rentals/:id/status', asyncHandler(async (req, res) => {
     WHERE id = ?
   `, [status, actualReturnDate, finalDeliveryStatus, rentalId]);
 
-  if (status === 'Booked' && oldStatus !== 'Booked') {
+  let emailSent = null;
+  if (send_email) {
+    emailSent = await sendStatusUpdateEmail(rentalId, status);
+  } else if (status === 'Booked' && oldStatus !== 'Booked') {
     await sendBookingConfirmationEmail(rentalId);
   }
 
-  res.json({ message: 'Rental status updated successfully', status, actualReturnDate });
+  res.json({ message: 'Rental status updated successfully', status, actualReturnDate, emailSent });
 }));
 
 app.delete('/api/rentals/:id', asyncHandler(async (req, res) => {
@@ -620,7 +1075,7 @@ app.get('/api/communications/reminders', asyncHandler(async (req, res) => {
   // Overdue rental followups needed
   const overdueRentals = await dbQuery.all(`
     SELECT r.*, c.name AS customer_name, c.phone AS customer_phone, c.email AS customer_email,
-           (SELECT COUNT(*) FROM communication_logs cl WHERE cl.customer_id = c.id AND cl.message LIKE '%overdue%') AS overdue_alerts_sent
+           (SELECT COUNT(*) FROM communication_logs cl WHERE cl.customer_id = c.id AND cl.notes LIKE '%overdue%') AS overdue_alerts_sent
     FROM equipment_rentals r
     JOIN customers c ON r.customer_id = c.id
     WHERE r.status = 'Overdue' OR (r.status = 'Out for Rental' AND r.expected_return_date < ?)
@@ -647,30 +1102,38 @@ app.post('/api/communications/log', asyncHandler(async (req, res) => {
   res.status(201).json({ id: result.id, message: 'Communication logged successfully' });
 }));
 
-// Simulate WhatsApp / Email dispatch
-app.post('/api/communications/send-alert', asyncHandler(async (req, res) => {
+// Send WhatsApp / Email dispatch via real services
+app.post('/api/communications/send-alert', authenticate, authorize(['Admin', 'Rental Manager']), auditLog, asyncHandler(async (req, res) => {
   const { customer_id, type, message, notes } = req.body;
 
   if (!customer_id || !type || !message) {
     return res.status(400).json({ error: 'customer_id, type, and message are required' });
   }
 
+  const customer = await dbQuery.get('SELECT phone FROM customers WHERE id = ?', [customer_id]);
+  if (!customer) return res.status(404).json({ error: 'Customer not found' });
+
+  let apiResponse = 'Simulated';
+  if (type === 'WhatsApp') {
+    const waResult = await sendWhatsAppMessage(customer.phone, message);
+    apiResponse = JSON.stringify(waResult);
+  }
+
   // Insert direct outbound communication log
   const result = await dbQuery.run(`
-    INSERT INTO communication_logs (customer_id, type, direction, message, status, notes)
-    VALUES (?, ?, 'Outbound', ?, 'Completed', ?)
-  `, [customer_id, type, message, notes || 'Dispatched via API Simulator.']);
+    INSERT INTO communication_logs (customer_id, type, direction, message, status, notes, owner, source)
+    VALUES (?, ?, 'Outbound', ?, 'Completed', ?, ?, 'API')
+  `, [customer_id, type, message, notes || 'Dispatched via API', req.user.username]);
 
-  // If this was an overdue alert, we log it, and if there is a schedule matching it, we resolve it.
   res.json({
     id: result.id,
     status: 'Success',
     timestamp: new Date().toISOString(),
-    api_response: `200 OK - Message dispatched successfully to WhatsApp/Email gateways for customer ID ${customer_id}`
+    api_response: apiResponse
   });
 }));
 
-app.put('/api/communications/:id/status', asyncHandler(async (req, res) => {
+app.put('/api/communications/:id/status', authenticate, auditLog, asyncHandler(async (req, res) => {
   const commId = req.params.id;
   const { status } = req.body;
   await dbQuery.run('UPDATE communication_logs SET status = ? WHERE id = ?', [status, commId]);
@@ -805,14 +1268,104 @@ app.get('/api/ai/insights', asyncHandler(async (req, res) => {
   res.json(insights);
 }));
 
+// -------------------------------------------------------------
+// 8. Script Uploads API
+// -------------------------------------------------------------
+app.post('/api/projects/:id/scripts/upload', authenticate, authorize(['Admin', 'Production Manager', 'Staff']), upload.single('script'), auditLog, asyncHandler(async (req, res) => {
+  const projectId = req.params.id;
+  const { title, version } = req.body;
+  const file = req.file;
+
+  if (!title || !file) {
+    return res.status(400).json({ error: 'Title and script file are required' });
+  }
+
+  const contentLink = `/uploads/${file.filename}`;
+
+  const result = await dbQuery.run(`
+    INSERT INTO scripts (project_id, title, version, content_link, owner, source)
+    VALUES (?, ?, ?, ?, ?, 'API')
+  `, [projectId, title, version || 'v1.0', contentLink, req.user.username]);
+
+  res.status(201).json({ id: result.id, title, version, content_link: contentLink, message: 'Script uploaded successfully' });
+}));
+
+// -------------------------------------------------------------
+// 9. Equipment Maintenance API
+// -------------------------------------------------------------
+app.get('/api/equipment/:id/maintenance', authenticate, asyncHandler(async (req, res) => {
+  const equipmentId = req.params.id;
+  const history = await dbQuery.all('SELECT * FROM equipment_maintenance WHERE equipment_id = ? ORDER BY service_date DESC', [equipmentId]);
+  res.json(history);
+}));
+
+app.post('/api/equipment/:id/maintenance', authenticate, authorize(['Admin', 'Rental Manager']), auditLog, asyncHandler(async (req, res) => {
+  const equipmentId = req.params.id;
+  const { service_date, description, cost, next_service_date, status } = req.body;
+
+  if (!service_date) {
+    return res.status(400).json({ error: 'Service date is required' });
+  }
+
+  const result = await dbQuery.run(`
+    INSERT INTO equipment_maintenance (equipment_id, service_date, description, cost, next_service_date, status, owner, source)
+    VALUES (?, ?, ?, ?, ?, ?, ?, 'API')
+  `, [equipmentId, service_date, description || '', cost || 0.0, next_service_date || null, status || 'Scheduled', req.user.username]);
+
+  res.status(201).json({ id: result.id, message: 'Maintenance record added successfully' });
+}));
+
+// -------------------------------------------------------------
+// 10. Client Reviews API
+// -------------------------------------------------------------
+app.get('/api/client-reviews', authenticate, asyncHandler(async (req, res) => {
+  const reviews = await dbQuery.all(`
+    SELECT cr.*, p.title as project_title, c.name as client_name 
+    FROM client_reviews cr
+    JOIN projects p ON cr.project_id = p.id
+    JOIN customers c ON cr.client_id = c.id
+    ORDER BY cr.created_at DESC
+  `);
+  res.json(reviews);
+}));
+
+app.post('/api/client-reviews', authenticate, auditLog, asyncHandler(async (req, res) => {
+  const { project_id, client_id, asset_link, comments, status } = req.body;
+
+  if (!project_id || !client_id) {
+    return res.status(400).json({ error: 'project_id and client_id are required' });
+  }
+
+  const result = await dbQuery.run(`
+    INSERT INTO client_reviews (project_id, client_id, asset_link, comments, status, owner, source)
+    VALUES (?, ?, ?, ?, ?, ?, 'API')
+  `, [project_id, client_id, asset_link || '', comments || '', status || 'Pending Review', req.user.username]);
+
+  res.status(201).json({ id: result.id, message: 'Client review logged successfully' });
+}));
+
 // Global error handler
 app.use((err, req, res, next) => {
   console.error('API Server Error:', err);
   res.status(500).json({ error: 'Internal server error occurred: ' + err.message });
 });
 
-// Start listening after database tables are validated
 dbInitialized.then(() => {
+  setupCronJobs();
+  
+  // Create or update default admin user with password 'vishu03'
+  bcrypt.hash('vishu03', 10).then(hash => {
+    dbQuery.get("SELECT id FROM users WHERE username = 'admin'").then(admin => {
+      if (!admin) {
+        dbQuery.run("INSERT INTO users (username, password, role) VALUES ('admin', ?, 'Admin')", [hash]);
+        console.log("Default Admin user created (admin / vishu03)");
+      } else {
+        dbQuery.run("UPDATE users SET password = ? WHERE username = 'admin'", [hash]);
+        console.log("Admin password updated to vishu03");
+      }
+    });
+  });
+
   app.listen(PORT, () => {
     console.log(`SD Digitals Rental Tracker API server running on: http://localhost:${PORT}`);
   });

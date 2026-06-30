@@ -13,9 +13,9 @@ async function seed() {
       'scenes', 'scripts', 'projects', 'equipment', 'customers'
     ];
     for (const table of tables) {
-      await dbQuery.exec(`DELETE FROM ${table}`);
+      await dbQuery.run(`DELETE FROM ${table}`);
     }
-    await dbQuery.exec("DELETE FROM sqlite_sequence WHERE name IN ('" + tables.join("','") + "')");
+    await dbQuery.run("DELETE FROM sqlite_sequence WHERE name IN ('" + tables.join("','") + "')");
     await dbQuery.exec('PRAGMA foreign_keys = ON');
     console.log('Cleared existing database tables.');
 
