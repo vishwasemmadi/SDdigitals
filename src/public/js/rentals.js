@@ -1,7 +1,7 @@
 // Rentals Controller for SD Digitals Rental CRM
 
 let equipmentInventory = [];
-let emailAutomationEnabled = localStorage.getItem('emailAutomationEnabled') === 'true';
+let emailAutomationEnabled = localStorage.getItem('emailAutomationEnabled') !== 'false';
 
 document.addEventListener('DOMContentLoaded', () => {
   highlightNav('nav-rentals');
@@ -471,3 +471,5 @@ async function deleteRental(event, rentalId) {
     showNotification('Network error.', 'error');
   }
 }
+
+

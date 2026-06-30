@@ -123,7 +123,7 @@ async function dropCard(event, newStatus) {
   if (!card) return;
 
   const rentalId = cardId.replace('rental-card-', '');
-  const emailAutomationEnabled = localStorage.getItem('emailAutomationEnabled') === 'true';
+  const emailAutomationEnabled = localStorage.getItem('emailAutomationEnabled') !== 'false';
 
   try {
     const res = await fetch(`${API_BASE}/api/rentals/${rentalId}/status`, {

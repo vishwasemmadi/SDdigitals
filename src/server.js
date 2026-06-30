@@ -873,7 +873,8 @@ app.post('/api/rentals', asyncHandler(async (req, res) => {
 
 app.put('/api/rentals/:id/status', asyncHandler(async (req, res) => {
   const rentalId = req.params.id;
-  const { status, delivery_status, send_email } = req.body;
+  const { status, delivery_status } = req.body;
+  const send_email = req.body.send_email !== false;
 
   if (!status) {
     return res.status(400).json({ error: 'Status is required' });
